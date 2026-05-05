@@ -57,6 +57,13 @@ uuid生成器 [点击生成](https://99688988.xyz/uuid-generator/)
 * **伪装域名 (SNI)**: 你的 Public Hostname
 * **底层安全 (TLS)**: 开启 (`tls`)
 
+快捷分享链接 (URI 格式) 示例
+
+如果你熟悉直接拼接链接，它大概长这个样子（把中括号里的内容替换成你的真实信息）：
+vless://[你的UUID]@[你的Tunnel域名]:443?encryption=none&security=tls&sni=[你的Tunnel域名]&type=ws&host=[你的Tunnel域名]&path=[你的WS路径]#Koyeb节点
+
+如果速度太慢在 地址 (Address) 可换成优选域名 [点击获取优选域名](https://kjgx668.blogspot.com/2023/08/cloudflare-ip-cloudflare-cf.html/)
+
 ---
 
 ## 进阶玩法：解锁流媒体与降低风控
