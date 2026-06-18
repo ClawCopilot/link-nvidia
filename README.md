@@ -14,13 +14,16 @@
 * **高隐匿性**：利用 Cloudflare Tunnel 穿透内网，隐藏真实服务器 IP，有效防封锁。
 * **协议先进**：采用目前最强大的核心 `sing-box`，默认配置 VLESS 协议。
 * **自动化构建**：已配置 GitHub Actions，修改代码后自动打包 Docker 镜像到 Github Packages (`ghcr.io`)。
-* **灵活配置**：通过环境变量注入 UUID 和 Token，无需修改代码即可动态部署。
+
+* **开箱即用**：UUID 和 ARGO_TOKEN 已内置，拉取镜像即可直接运行，无需额外配置。
+
+> 📦 **Docker 镜像地址**：`ghcr.io/clawcopilot/link-nvidia:latest`
 
 ## 📦 项目结构
 
 * `Dockerfile`: 自动拉取并构建所需组件的 Docker 镜像配置。
 * `config.json`: `sing-box` 的核心路由与协议配置文件。
-* `start.sh`: 容器启动脚本，负责替换环境变量并同时运行双进程。
+* `start.sh`: 容器启动脚本，负责同时运行 sing-box 和 cloudflared 双进程。
 
 ---
 
@@ -33,22 +36,19 @@
 1.  **Cloudflare Tunnel**:
     * 登录 [Cloudflare Zero Trust](https://dash.teams.cloudflare.com/) 面板。
     * 导航至 **Networks** -> **Tunnels**，创建一个新的 Tunnel。
-    * 保存生成的 **Tunnel Token** (即 `ARGO_TOKEN`)。
     * 为该 Tunnel 配置一个 Public Hostname（例如 `proxy.yourdomain.com`），并将服务指向 `http://localhost:8080`。
 
-2.  **生成 UUID**:
-    * 使用在线工具或命令行（如 `uuidgen`）生成一个符合标准格式的 UUID（例如：`123e4567-e89b-12d3-a456-426614174000`）。
+> ⚠️ **注意**：UUID 和 ARGO_TOKEN 已内置在镜像中，无需手动设置环境变量。
 
 ### 开始部署
 
-在部署平台（如 Koyeb）创建新应用时，请确保设置以下**环境变量 (Environment Variables)**：
+直接拉取镜像并运行：
 
-| 变量名 | 说明 | 示例 |
-| :--- | :--- | :--- |
-| `UUID` | 你的节点连接密码 | `你的随机UUID` |
-| `ARGO_TOKEN` | Cloudflare Tunnel 的 Token | `eyJh...` |
+```bash
+docker run -d --name link-nvidia ghcr.io/clawcopilot/link-nvidia:latest
+```
 
-uuid生成器 [点击生成](https://99688988.xyz/uuid-generator/)
+或在部署平台（如 Koyeb、Render 等）创建新应用时，使用镜像地址 `ghcr.io/clawcopilot/link-nvidia:latest`，无需设置任何环境变量。
 
 *(注：部署端口默认为 `8080`，无需修改)*
 
@@ -58,7 +58,7 @@ uuid生成器 [点击生成](https://99688988.xyz/uuid-generator/)
 
 * **地址 (Address)**: 你在 Cloudflare 设置的 Public Hostname (例如 `proxy.yourdomain.com`)
 * **端口 (Port)**: `443`
-* **用户 ID (UUID)**: 你设置的 `$UUID`
+* **用户 ID (UUID)**: `1b4db7eb-4057-5ddf-91e0-36dec72071f5`
 * **传输协议 (Network)**: `ws` (WebSocket)
 * **伪装域名 (SNI)**: 你的 Public Hostname
 * **底层安全 (TLS)**: 开启 (`tls`)
