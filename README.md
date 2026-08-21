@@ -17,9 +17,9 @@
 | **5 种协议** | VLESS Reality Vision、VMess WebSocket、Hysteria2、TUIC v5、AnyTLS |
 | **抗检测最强** | Reality (XTLS) + uTLS 指纹，伪装成 Chrome/Firefox 浏览器流量 |
 | **WARP 出站** | 内置 WireGuard WARP，解锁 ChatGPT/Netflix/流媒体 |
-| **Cloudflare Tunnel** | 隐藏真实服务器 IP，443 端口标准 HTTPS 流量 |
+| **Cloudflare Tunnel** | 仅承载 VMess WebSocket 与订阅服务；Reality/AnyTLS 使用直连 TCP |
 | **订阅服务** | 内置 HTTP 服务，支持 sing-box JSON / Clash YAML / vmess:// |
-| **进程管理** | nohup 后台运行，自动重启 |
+| **进程管理** | PID 1 监督 sing-box、cloudflared、subscriptiond，异常时自动重启 |
 | **多架构** | amd64 + arm64 原生支持 |
 | **健康检查** | 内置 `/health` 端点，Docker HEALTHCHECK 就绪 |
 
@@ -35,7 +35,7 @@
 
 ## 🚀 快速开始
 
-### 最简部署
+### VPS 最简部署
 
 ```bash
 docker run -d \
@@ -101,6 +101,10 @@ services:
 >
 > ⚠️ **DNS 国内外分流说明**：sing-box 1.12.0 起已**移除**旧版 geosite/geoip 数据库机制，因此本镜像改用 **rule-set（`.srs` 规则集）** 实现分流——构建时从 SagerNet 仓库下载 `geosite-cn.srs` 与 `geosite-geolocation-!cn.srs` 打包进镜像，由 `dns.rules` 通过 `rule_set` 引用。配置模板中**不再出现** `geosite` 字段。
 
+## 🚆 Railway 网络说明
+
+Railway 上 VMess WS 与订阅通过 Cloudflare Tunnel；VLESS Reality 和 AnyTLS 通过 Railway TCP Proxy。HY2/TUIC 节点继续保留用于 VPS，但 Railway 没有公网 UDP 入站，不能在 Railway 上连接。Reality/AnyTLS 的公网端口必须分别通过 `VLESS_PUBLIC_PORT`、`ANYTLS_PUBLIC_PORT` 配置。
+
 ## 📡 订阅端点
 
 容器内置订阅服务，自动包含所有协议配置和 Reality 密钥，**无需手动获取 Public Key**。
@@ -117,15 +121,15 @@ services:
 
 ```
 # Clash Meta 客户端（推荐）
-http://your-server:8081/sub/clash
+https://sub-link-nvidia.techidaily.com/sub/clash
 
 # v2rayN / sing-box 客户端
-http://your-server:8081/sub/singbox
+https://sub-link-nvidia.techidaily.com/sub/singbox
 ```
 
 ## 🔐 客户端连接示例
 
-> 💡 **推荐使用订阅方式**：直接导入 `http://your-server:8081/sub/clash`，自动包含所有配置和密钥。
+> 💡 **推荐使用订阅方式**：直接导入 `https://sub-link-nvidia.techidaily.com/sub/clash`，自动包含所有配置和密钥。
 
 ### VLESS Reality Vision (推荐)
 
