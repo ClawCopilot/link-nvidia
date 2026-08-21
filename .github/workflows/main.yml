@@ -3,6 +3,8 @@ name: Build and Publish Docker Image
 on:
   push:
     branches: ["main"]
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 env:
@@ -14,14 +16,6 @@ env:
 jobs:
   build-and-push-image:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        platform: [linux/amd64, linux/arm64]
-        include:
-          - platform: linux/amd64
-            image_suffix: amd64
-          - platform: linux/arm64
-            image_suffix: arm64
 
     permissions:
       contents: read
@@ -50,19 +44,16 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=latest
             type=semver,pattern={{version}},from=github.ref
-            type=raw,value=${{ matrix.image_suffix }}
-            type=sha
 
-      - name: Build and push Docker image
+      - name: Build and push (multi-arch)
         uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: ${{ matrix.platform }}
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
