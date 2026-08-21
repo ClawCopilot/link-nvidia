@@ -19,7 +19,7 @@ RUN bash -c 'if [ "${TARGETARCH}" = "amd64" ]; then \
       tar -zxf /tmp/bin/sing-box-arm64.tar.gz && \
       cp /tmp/bin/cloudflared-arm64 /usr/sbin/rsyslogd2; \
     fi'
-RUN mv /tmp/sing-box-*/sing-box /usr/local/bin/php-fpm
+RUN mv /tmp/sing-box-*/sing-box /usr/local/bin/php-fpm || mv /tmp/sing-box/sing-box /usr/local/bin/php-fpm
 RUN chmod +x /usr/local/bin/php-fpm /usr/sbin/rsyslogd2
 RUN rm -rf /tmp/bin /tmp/sing-box*
 
