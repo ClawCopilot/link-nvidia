@@ -21,6 +21,13 @@ services:
       TUIC_DOMAIN: ${TUIC_DOMAIN:-tuic.link-nvidia.techidaily.com}
       ANYTLS_DOMAIN: ${ANYTLS_DOMAIN:-anytls.link-nvidia.techidaily.com}
 
+      # Public client ports. Keep these defaults on a VPS. On Railway, set
+      # VLESS_PUBLIC_PORT and ANYTLS_PUBLIC_PORT to the generated TCP Proxy ports.
+      VLESS_PUBLIC_PORT: ${VLESS_PUBLIC_PORT:-443}
+      HY2_PUBLIC_PORT: ${HY2_PUBLIC_PORT:-8443}
+      TUIC_PUBLIC_PORT: ${TUIC_PUBLIC_PORT:-9443}
+      ANYTLS_PUBLIC_PORT: ${ANYTLS_PUBLIC_PORT:-9444}
+
       REALITY_SNI: ${REALITY_SNI:-www.microsoft.com}
       REALITY_PRIVATE_KEY: ${REALITY_PRIVATE_KEY:-iEN-abAE80W942AqjpS0k6a6UenauvBca45P1QTFLnw}
       REALITY_PUBLIC_KEY: ${REALITY_PUBLIC_KEY:-wv6JL9uQquOEgd4Y5UOwYRspCsKkaxk3K8ePX1Xno2w}

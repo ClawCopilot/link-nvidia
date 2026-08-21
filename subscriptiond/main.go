@@ -15,6 +15,7 @@ import (
 var (
 	uuid, port, realityPublicKey, realityShortID, realitySNI, argoDomain string
 	vlessDomain, hy2Domain, tuicDomain, anytlsDomain          string
+	vlessPublicPort, hy2PublicPort, tuicPublicPort, anytlsPublicPort int
 	keepaliveInterval                                        time.Duration
 )
 
@@ -29,6 +30,10 @@ func init() {
 	flag.StringVar(&hy2Domain, "hy2-domain", "", "Direct Hysteria2 hostname")
 	flag.StringVar(&tuicDomain, "tuic-domain", "", "Direct TUIC hostname")
 	flag.StringVar(&anytlsDomain, "anytls-domain", "", "Direct AnyTLS hostname")
+	flag.IntVar(&vlessPublicPort, "vless-public-port", 443, "Public VLESS Reality port")
+	flag.IntVar(&hy2PublicPort, "hy2-public-port", 8443, "Public Hysteria2 port")
+	flag.IntVar(&tuicPublicPort, "tuic-public-port", 9443, "Public TUIC port")
+	flag.IntVar(&anytlsPublicPort, "anytls-public-port", 9444, "Public AnyTLS port")
 	flag.DurationVar(&keepaliveInterval, "keepalive-interval", 10*time.Minute, "Keepalive interval")
 }
 
@@ -96,11 +101,11 @@ func generateSingboxConfig() map[string]any {
 	anytlsTLS := map[string]any{"enabled": true, "server_name": anytlsDomain, "insecure": true}
 	outbounds := []map[string]any{
 		{"type": "selector", "tag": "proxy", "outbounds": []string{"vless-reality", "vmess-ws", "hysteria2", "tuic", "anytls"}},
-		{"type": "vless", "tag": "vless-reality", "server": vlessDomain, "server_port": 443, "uuid": uuid, "flow": "xtls-rprx-vision", "tls": map[string]any{"enabled": true, "server_name": realitySNI, "utls": map[string]any{"enabled": true, "fingerprint": "chrome"}, "reality": map[string]any{"enabled": true, "public_key": realityPublicKey, "short_id": realityShortID}}},
+		{"type": "vless", "tag": "vless-reality", "server": vlessDomain, "server_port": vlessPublicPort, "uuid": uuid, "flow": "xtls-rprx-vision", "tls": map[string]any{"enabled": true, "server_name": realitySNI, "utls": map[string]any{"enabled": true, "fingerprint": "chrome"}, "reality": map[string]any{"enabled": true, "public_key": realityPublicKey, "short_id": realityShortID}}},
 		{"type": "vmess", "tag": "vmess-ws", "server": argoDomain, "server_port": 443, "uuid": uuid, "security": "auto", "transport": map[string]any{"type": "ws", "path": "/vless", "headers": map[string]string{"Host": argoDomain}}, "tls": map[string]any{"enabled": true, "server_name": argoDomain}},
-		{"type": "hysteria2", "tag": "hysteria2", "server": hy2Domain, "server_port": 8443, "password": uuid, "tls": quicTLS(hy2Domain)},
-		{"type": "tuic", "tag": "tuic", "server": tuicDomain, "server_port": 9443, "uuid": uuid, "password": uuid, "congestion_control": "bbr", "tls": quicTLS(tuicDomain)},
-		{"type": "anytls", "tag": "anytls", "server": anytlsDomain, "server_port": 9444, "password": uuid, "tls": anytlsTLS},
+		{"type": "hysteria2", "tag": "hysteria2", "server": hy2Domain, "server_port": hy2PublicPort, "password": uuid, "tls": quicTLS(hy2Domain)},
+		{"type": "tuic", "tag": "tuic", "server": tuicDomain, "server_port": tuicPublicPort, "uuid": uuid, "password": uuid, "congestion_control": "bbr", "tls": quicTLS(tuicDomain)},
+		{"type": "anytls", "tag": "anytls", "server": anytlsDomain, "server_port": anytlsPublicPort, "password": uuid, "tls": anytlsTLS},
 		{"type": "direct", "tag": "direct"},
 	}
 	return map[string]any{
@@ -122,7 +127,7 @@ proxies:
   - name: link-nvidia-vless-reality
     type: vless
     server: %s
-    port: 443
+    port: %d
     uuid: %s
     flow: xtls-rprx-vision
     tls: true
@@ -147,7 +152,7 @@ proxies:
   - name: link-nvidia-hy2
     type: hysteria2
     server: %s
-    port: 8443
+    port: %d
     password: %s
     sni: %s
     alpn: [h3]
@@ -155,7 +160,7 @@ proxies:
   - name: link-nvidia-tuic
     type: tuic
     server: %s
-    port: 9443
+    port: %d
     uuid: %s
     password: %s
     sni: %s
@@ -164,7 +169,7 @@ proxies:
   - name: link-nvidia-anytls
     type: anytls
     server: %s
-    port: 9444
+    port: %d
     password: %s
     sni: %s
     skip-cert-verify: true
@@ -175,11 +180,11 @@ proxy-groups:
 rules:
   - GEOIP,CN,DIRECT
   - MATCH,proxy
-`, vlessDomain, uuid, realitySNI, realityPublicKey, realityShortID,
+`, vlessDomain, vlessPublicPort, uuid, realitySNI, realityPublicKey, realityShortID,
 		argoDomain, uuid, argoDomain, argoDomain,
-		hy2Domain, uuid, hy2Domain,
-		tuicDomain, uuid, uuid, tuicDomain,
-		anytlsDomain, uuid, anytlsDomain)
+		hy2Domain, hy2PublicPort, uuid, hy2Domain,
+		tuicDomain, tuicPublicPort, uuid, uuid, tuicDomain,
+		anytlsDomain, anytlsPublicPort, uuid, anytlsDomain)
 }
 
 func generateVmessLinks() []string {
