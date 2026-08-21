@@ -16,19 +16,19 @@ TUIC v5       ─ UDP 9443 ─────────────────�
 AnyTLS        ─ TCP 9444 ────────────────────────────────> Docker Host:9444/tcp
 ```
 
-如果必须让任意 TCP/UDP 协议也经过 Cloudflare，需要使用支持相应 L4 协议的 Cloudflare 产品（例如符合账号能力的 Spectrum 配置），不能用普通 HTTP Tunnel Public Hostname 冒充 L4 代理。
+如果必须让任意 TCP/UDP 协议也经过 Cloudflare，需要使用支持相应 L4 协议的 Cloudflare 产品，不能用普通 HTTP Tunnel Public Hostname 冒充 L4 代理。
 
 ## 2. DNS
 
-建议使用两个入口：
+使用三个入口：
 
 - `link-nvidia.techidaily.com`：Cloudflare Tunnel hostname，仅用于 VMess WebSocket。
 - `sub.link-nvidia.techidaily.com`：Cloudflare Tunnel hostname，仅用于订阅/健康检查。
 - `direct.link-nvidia.techidaily.com`：DNS-only（灰云）A/AAAA 记录，直接解析到 Docker 主机公网地址，供 Reality/HY2/TUIC/AnyTLS 使用。
 
-`direct.*` **不能开启普通 Cloudflare HTTP proxy（橙云）**，否则 UDP 8443/9443 和非 HTTP TCP 协议不会按本项目设计工作。
+`direct.*` 不能开启普通 Cloudflare HTTP proxy（橙云），否则 UDP 8443/9443 和非 HTTP TCP 协议不会按本项目设计工作。
 
-如果部署平台没有可直接到达的公网 TCP+UDP 端口（尤其是 UDP 8443/9443），HY2/TUIC 无法按此方案部署。此时应换到 VPS/裸机/有公网端口映射的平台，或使用真正支持这些 L4 流量的产品。
+如果部署平台没有可直接到达的公网 TCP+UDP 端口（尤其是 UDP 8443/9443），HY2/TUIC 无法按此方案部署。
 
 ## 3. Cloudflare Tunnel
 
@@ -48,26 +48,24 @@ http://localhost:9443
 http://localhost:9444
 ```
 
-## 4. 必需 secrets / 环境变量
+## 4. 内置默认配置
 
-不要把凭据写进公开仓库或 Compose 默认值。部署时通过 `.env`（不要提交）或平台 Secret Store 注入：
+本项目有意内置以下默认值，并允许通过环境变量覆盖；这是项目既定部署设计，不需要在部署前轮换：
 
 ```dotenv
-UUID=<uuid>
-ARGO_TOKEN=<cloudflare-named-tunnel-token>
+UUID=1b4db7eb-4057-5ddf-91e0-36dec72071f5
+ARGO_TOKEN=<仓库 entrypoint/docker-compose 中的既有固定 token>
 ARGO_DOMAIN=link-nvidia.techidaily.com
 DIRECT_DOMAIN=direct.link-nvidia.techidaily.com
 REALITY_SNI=www.microsoft.com
-REALITY_PRIVATE_KEY=<private-key>
-REALITY_PUBLIC_KEY=<public-key>
-REALITY_SHORT_ID=<short-id>
+REALITY_PRIVATE_KEY=iEN-abAE80W942AqjpS0k6a6UenauvBca45P1QTFLnw
+REALITY_PUBLIC_KEY=wv6JL9uQquOEgd4Y5UOwYRspCsKkaxk3K8ePX1Xno2w
+REALITY_SHORT_ID=3ff4bf41
 ```
 
-仓库历史中曾出现过 Tunnel token、UUID 和 Reality 私钥默认值。**这些值应视为已泄露并立即轮换**，仅从当前文件删除并不能从 Git 历史中撤销泄露。
+`docker-compose.yml` 和 `entrypoint.sh` 保留这些原始默认值。部署平台仍可通过同名环境变量覆盖它们。
 
 ## 5. Docker 部署
-
-生产环境建议固定 commit tag，而不是长期依赖滚动的 `latest`：
 
 ```bash
 docker compose pull
@@ -131,4 +129,4 @@ https://sub.link-nvidia.techidaily.com/health
 
 ## 9. 证书说明
 
-Reality 使用 Reality key pair。HY2/TUIC/AnyTLS 当前使用容器生成的自签证书，因此客户端配置需要允许该证书；生产环境更推荐挂载与 `DIRECT_DOMAIN` 匹配的可信证书，并相应调整启动脚本，避免 `skip-cert-verify`。
+Reality 使用固定 Reality key pair。HY2/TUIC/AnyTLS 当前使用容器生成的自签证书，因此客户端配置需要允许该证书；生产环境也可以挂载与 `DIRECT_DOMAIN` 匹配的可信证书。
