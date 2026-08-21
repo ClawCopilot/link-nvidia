@@ -52,7 +52,6 @@ jobs:
         with:
           images: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.image_suffix }}
           tags: |
             type=raw,value=latest
             type=raw,value=${{ matrix.image_suffix }}
