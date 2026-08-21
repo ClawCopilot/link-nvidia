@@ -19,11 +19,21 @@
 
 ### 第一步：构建镜像
 
-GitHub Actions 已自动构建，镜像地址：
+GitHub Actions 已自动构建，每次推送到 `main` 会生成以下 tag：
+
 ```
-ghcr.io/clawcopilot/link-nvidia:latest
-ghcr.io/clawcopilot/link-nvidia:v1.0.0
+ghcr.io/clawcopilot/link-nvidia:latest        # 始终指向最新构建（会随每次构建滚动覆盖）
+ghcr.io/clawcopilot/link-nvidia:v1.0.0        # 语义化版本（打 v* tag 时生成）
+ghcr.io/clawcopilot/link-nvidia:<short-sha>   # 7 位 commit 短码，如 :106f78d
 ```
+
+> 📌 **按 commit 精确钉版本（推荐用于生产）**：`latest` 会随每次构建滚动覆盖，若想锁定某次已知可用的配置（避免新构建缓存覆盖、或排查"部署后配置不对"类问题），请直接引用对应 commit 的短码 tag。
+>
+> 当前包含所有 sing-box 1.13.19 修复（`geosite→rule-set`、`fakeip` 范围、`DNS/路由 schema`、`envsubst` 导出、`domain_resolver`）的镜像对应 commit 短码：
+> ```
+> ghcr.io/clawcopilot/link-nvidia:106f78d
+> ```
+> 查询任意 commit 的短码：`git rev-parse --short <commit>`
 
 ### 第二步：在 Railway 创建项目
 
@@ -257,7 +267,7 @@ git tag v1.1.0
 git push && git push --tags
 ```
 
-GitHub Actions 会自动构建并推送新镜像。
+GitHub Actions 会自动构建并推送新镜像（包含 `latest`、语义化版本、以及 7 位 commit 短码 tag）。
 
 ---
 
