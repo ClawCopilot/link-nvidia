@@ -94,8 +94,8 @@ services:
 | `WARP_ENABLED` | ❌ | `true` | 是否启用 WARP 出站 |
 | `WARP_PRIVATE_KEY` | ❌ | 备用配置 | WARP 私钥 |
 | `WARP_RESERVED` | ❌ | `[126,246,173]` | WARP reserved bytes |
-| `SING_BOX_VERSION` | ❌ | `1.11.0` | sing-box 版本 |
-| `CLOUDFLARED_VERSION` | ❌ | `2024.6.1` | cloudflared 版本 |
+| `SING_BOX_VERSION` | ❌ | `1.12.9` | sing-box 版本 |
+| `CLOUDFLARED_VERSION` | ❌ | `2026.8.2` | cloudflared 版本 |
 | `KEEPALIVE_INTERVAL` | ❌ | `10m` | 保活间隔 |
 
 ## 📡 订阅端点

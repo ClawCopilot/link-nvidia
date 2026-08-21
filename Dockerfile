@@ -26,8 +26,8 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
 # -----------------------------------------------
 FROM alpine:3.20
 
-ARG SING_BOX_VERSION=1.11.0
-ARG CLOUDFLARED_VERSION=2024.6.1
+ARG SING_BOX_VERSION=1.12.9
+ARG CLOUDFLARED_VERSION=2026.8.2
 
 LABEL org.opencontainers.image.title="link-nvidia"
 LABEL org.opencontainers.image.description="sing-box multi-protocol proxy with Cloudflare Tunnel"
