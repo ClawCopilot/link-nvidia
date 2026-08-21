@@ -70,40 +70,77 @@ xyz123abc-12345678901234-up-0-0-xxxxx-xxxxx-xxxxx.traefics.me
 
 **在 Cloudflare Tunnel 中配置**：
 
-1. 将 Argo Tunnel 的 **Public Hostname** 设置为你的自定义域名（如 `proxy.yourdomain.com`）
-2. Service 指向 Railway 分配的公共域名 + 端口 `8080`
+在 Cloudflare Zero Trust → Networks → Tunnels → 你的隧道 → Public Hostname，添加以下配置：
+
+| Hostname | Service | 说明 |
+|----------|---------|------|
+| `proxy.link-nvidia.techidaily.com` | `http:// Railway域名:8080` | VMess WS + 订阅服务 |
+| `vless.link-nvidia.techidaily.com` | `http:// Railway域名:443` | VLESS Reality |
+| `hy2.link-nvidia.techidaily.com` | `http:// Railway域名:8443` | Hysteria2 |
+| `tuic.link-nvidia.techidaily.com` | `http:// Railway域名:9443` | TUIC v5 |
+| `anytls.link-nvidia.techidaily.com` | `http:// Railway域名:9444` | AnyTLS |
+
+**注意**：Railway 的公共域名每次重启会变，需要在 Railway 的 **Settings → Networking** 中配置**自定义域名绑定**，这样 Railway 域名变化时自动更新。
 
 ---
 
-## 📱 Railway 上的客户端连接配置
+## 📱 客户端连接配置
 
-### 获取 Railway 分配的域名
+### 域名配置（基于 Cloudflare Tunnel）
 
-在 Railway Dashboard → 你的服务 → **Settings** → **Networking** → **Public Address**
+在 Cloudflare Tunnel 中配置好 Public Hostname 后，使用以下域名连接：
 
 ### VLESS Reality Vision（推荐）
 
-| 配置项 | Railway 值 |
-|--------|-----------|
-| **地址** | 你的自定义域名 或 Railway 公共域名 |
+| 配置项 | 值 |
+|--------|-----|
+| **地址** | `vless.link-nvidia.techidaily.com` |
 | **端口** | `443` |
 | **UUID** | `1b4db7eb-4057-5ddf-91e0-36dec72071f5` |
 | **TLS** | Reality |
 | **SNI** | `www.microsoft.com` |
-| **Public Key** | 见下方"获取 Reality 密钥" |
-| **Short ID** | 见下方"获取 Reality 密钥" |
+| **Public Key** | 订阅自动包含 |
+| **Short ID** | 订阅自动包含 |
 | **Flow** | `xtls-rprx-vision` |
 
 ### VMess WebSocket
 
-| 配置项 | Railway 值 |
-|--------|-----------|
-| **地址** | Railway 公共域名 |
-| **端口** | `443`（TLS）或 Railway 端口 |
+| 配置项 | 值 |
+|--------|-----|
+| **地址** | `proxy.link-nvidia.techidaily.com` |
+| **端口** | `443` |
 | **UUID** | `1b4db7eb-4057-5ddf-91e0-36dec72071f5` |
 | **传输** | WebSocket |
 | **路径** | `/vless` |
 | **TLS** | 开启 |
+
+### Hysteria2
+
+| 配置项 | 值 |
+|--------|-----|
+| **地址** | `hy2.link-nvidia.techidaily.com` |
+| **端口** | `443` |
+| **密码** | `1b4db7eb-4057-5ddf-91e0-36dec72071f5` |
+| **SNI** | `www.bing.com` |
+| **ALPN** | `h3` |
+
+### TUIC v5
+
+| 配置项 | 值 |
+|--------|-----|
+| **地址** | `tuic.link-nvidia.techidaily.com` |
+| **端口** | `443` |
+| **UUID** | `1b4db7eb-4057-5ddf-91e0-36dec72071f5` |
+| **密码** | `1b4db7eb-4057-5ddf-91e0-36dec72071f5` |
+| **ALPN** | `h3` |
+
+### AnyTLS
+
+| 配置项 | 值 |
+|--------|-----|
+| **地址** | `anytls.link-nvidia.techidaily.com` |
+| **端口** | `443` |
+| **密码** | `1b4db7eb-4057-5ddf-91e0-36dec72071f5` |
 
 ---
 
