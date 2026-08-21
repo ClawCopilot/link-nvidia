@@ -9,7 +9,7 @@
 | 域名 | 入口 | 用途 |
 |---|---|---|
 | `link-nvidia.techidaily.com` | Cloudflare Tunnel | VMess WebSocket `/vless` |
-| `sub.link-nvidia.techidaily.com` | Cloudflare Tunnel | 订阅与健康检查 |
+| `sub-link-nvidia.techidaily.com` | Cloudflare Tunnel | 订阅与健康检查 |
 | `vless.link-nvidia.techidaily.com` | DNS-only，直连主机 | VLESS Reality，TCP 443 |
 | `hy2.link-nvidia.techidaily.com` | DNS-only，直连主机 | Hysteria2，UDP 8443 |
 | `tuic.link-nvidia.techidaily.com` | DNS-only，直连主机 | TUIC v5，UDP 9443 |
@@ -24,7 +24,7 @@ Named Tunnel 只保留两个 Public Hostname：
 | Hostname | Origin service |
 |---|---|
 | `link-nvidia.techidaily.com` | `http://localhost:8080` |
-| `sub.link-nvidia.techidaily.com` | `http://localhost:8081` |
+| `sub-link-nvidia.techidaily.com` | `http://localhost:8081` |
 
 删除指向 443、8443、9443、9444 的 HTTP origins；这些端口由客户端直接访问主机。
 
@@ -52,7 +52,7 @@ REALITY_SHORT_ID=3ff4bf41
 
 ## 4. Railway 部署
 
-Cloudflare Tunnel 仍只负责 `link-nvidia` 和 `sub`。在 Railway Service → Settings → Networking 中另外创建两个 TCP Proxy：
+Cloudflare Tunnel 仍只负责 `link-nvidia` 和 `sub-link-nvidia`。在 Railway Service → Settings → Networking 中另外创建两个 TCP Proxy：
 
 | Railway internal port | Protocol | 环境变量 |
 |---:|---|---|
@@ -99,7 +99,7 @@ docker exec link-nvidia wget -qO- http://127.0.0.1:8081/health
 docker exec link-nvidia cat /tmp/cloudflared.log
 docker exec link-nvidia cat /tmp/sing-box.log
 docker exec link-nvidia cat /tmp/subscriptiond.log
-curl -fsS https://sub.link-nvidia.techidaily.com/health
+curl -fsS https://sub-link-nvidia.techidaily.com/health
 ```
 
 再从另一台公网机器或手机网络分别验证 TCP 与 UDP。浏览器访问 Reality、HY2、TUIC 域名不能证明对应协议在线。
@@ -115,15 +115,21 @@ curl -fsS https://sub.link-nvidia.techidaily.com/health
 | AnyTLS | `ANYTLS_DOMAIN` | `ANYTLS_PUBLIC_PORT`/TCP | TLS |
 
 ```text
-https://sub.link-nvidia.techidaily.com/sub/singbox
-https://sub.link-nvidia.techidaily.com/sub/clash
-https://sub.link-nvidia.techidaily.com/sub/vmess
-https://sub.link-nvidia.techidaily.com/health
+https://sub-link-nvidia.techidaily.com/sub/singbox
+https://sub-link-nvidia.techidaily.com/sub/clash
+https://sub-link-nvidia.techidaily.com/sub/vmess
+https://sub-link-nvidia.techidaily.com/health
 ```
 
 `/sub/singbox` 返回 Base64 编码的 sing-box 客户端配置，包含五个客户端 `outbounds`，不再返回服务器端 `inbounds` 配置。
 
-## 8. 证书与进程监督
+## 8. Reality 排查
+
+Railway 中必须为容器内部端口 `443` 创建 TCP Proxy，并把其公网端口写入 `VLESS_PUBLIC_PORT`。`vless.*` 必须是 DNS-only（灰云）CNAME，指向 Railway TCP Proxy 域名。
+
+可先绕过自定义 DNS，用 Railway 原始代理地址测试。若 `turntable.proxy.rlwy.net:27231` 可用而 `vless.link-nvidia.techidaily.com:27231` 不可用，问题就在 Cloudflare DNS。客户端必须使用：`flow=xtls-rprx-vision`、`SNI=www.microsoft.com`、固定 Reality public key 与 short ID。
+
+## 9. 证书与进程监督
 
 Reality 使用固定 Reality key pair。HY2、TUIC、AnyTLS 当前共用容器生成的自签证书，因此订阅配置启用 `insecure`；生产环境也可以挂载可信证书。
 
