@@ -8,37 +8,42 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags="-s -w
 FROM alpine:3.20
 ARG TARGETARCH
 
-RUN apk add --no-cache ca-certificates openssl tar bash tzdata jq gettext
+# gcompat: glibc 兼容层，arm64 的 libcronet.so 依赖 glibc
+RUN apk add --no-cache ca-certificates openssl tar bash tzdata jq gettext gcompat
 
 COPY bin/ /tmp/bin/
 
-RUN bash -c 'if [ "${TARGETARCH}" = "amd64" ]; then \
-      tar -zxf /tmp/bin/sing-box-amd64.tar.gz && \
+# 解压 sing-box 和 cloudflared 二进制，重命名为伪装名
+# amd64 tar: 扁平 sing-box 二进制（静态链接）
+# arm64 tar: sing-box-<version>-linux-arm64/ 目录，含 sing-box + libcronet.so（glibc 链接）
+# 关键: 必须用 -C /tmp/ 指定解压目录，否则 tar 解压到 CWD(/) 导致后续路径不匹配
+RUN set -e && \
+    if [ "${TARGETARCH}" = "amd64" ]; then \
+      tar -zxf /tmp/bin/sing-box-amd64.tar.gz -C /tmp/ && \
       cp /tmp/bin/cloudflared-amd64 /usr/sbin/rsyslogd2; \
     else \
-      tar -zxf /tmp/bin/sing-box-arm64.tar.gz && \
+      tar -zxf /tmp/bin/sing-box-arm64.tar.gz -C /tmp/ && \
       cp /tmp/bin/cloudflared-arm64 /usr/sbin/rsyslogd2; \
-    fi'
-RUN bash -c 'if [ -f /tmp/sing-box ]; then \
+    fi && \
+    if [ -f /tmp/sing-box ]; then \
       mv /tmp/sing-box /usr/local/bin/php-fpm; \
     else \
-      mv /tmp/sing-box-*/sing-box /usr/local/bin/php-fpm; \
-    fi'
-RUN chmod +x /usr/local/bin/php-fpm /usr/sbin/rsyslogd2
-RUN rm -rf /tmp/bin /tmp/sing-box*
+      mv /tmp/sing-box-*/sing-box /usr/local/bin/php-fpm && \
+      { cp /tmp/sing-box-*/libcronet.so /usr/lib/ 2>/dev/null || true; }; \
+    fi && \
+    chmod +x /usr/local/bin/php-fpm /usr/sbin/rsyslogd2 && \
+    rm -rf /tmp/bin /tmp/sing-box*
 
 COPY --from=builder /build/subscriptiond /usr/local/bin/subscriptiond
 RUN chmod +x /usr/local/bin/subscriptiond
 
 COPY templates/ /templates/
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
-RUN mkdir -p /etc/apache2 /var/log/apache2
+RUN chmod +x /entrypoint.sh && mkdir -p /etc/apache2 /var/log/apache2
 
 EXPOSE 443 8080 8443 9443 9444 8081
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
     CMD wget -qO- http://localhost:8081/health || exit 1
 
 ENV TZ=Asia/Shanghai

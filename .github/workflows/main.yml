@@ -10,8 +10,6 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  SING_BOX_VERSION: 1.13.19
-  CLOUDFLARED_VERSION: 2026.8.2
 
 jobs:
   build-and-push-image:
@@ -57,8 +55,5 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            SING_BOX_VERSION=${{ env.SING_BOX_VERSION }}
-            CLOUDFLARED_VERSION=${{ env.CLOUDFLARED_VERSION }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

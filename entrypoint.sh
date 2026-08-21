@@ -13,10 +13,10 @@ DATA_DIR="/var/log/apache2"
 : "${HY2_PORT:=8443}"
 : "${TUIC_PORT:=9443}"
 : "${ANYTLS_PORT:=9444}"
-: "${SING_BOX_VERSION:=1.13.19}"
-: "${CLOUDFLARED_VERSION:=2026.8.2}"
 : "${WARP_ENABLED:=false}"
 : "${WARP_IPV6:=fd00::2}"
+: "${WARP_PRIVATE_KEY:=wIxszdR2nMdA7a2Ul3XQcniSfSZqdqjPb6w6opvf5AU=}"
+: "${WARP_RESERVED:=[126,246,173]}"
 : "${SUBSCRIPTION_PORT:=8081}"
 : "${KEEPALIVE_INTERVAL:=10m}"
 : "${ARGO_TOKEN:=eyJhIjoiZDBkM2UzZjUyZWI1MDQzYjRlYjU3ZTEzZTkwNzg0OTEiLCJ0IjoiNjU1YWUyYWItZjA3Yi00YzM2LTgwOGQtMzk3OTJjMTAyYjgwIiwicyI6Ik5EZ3pZek5oT1dVdE1HVXhPUzAwTkRCa0xUbGlaRFV0T0dWbU9XRXpNMkk1WkRKaCJ9}"
@@ -34,13 +34,6 @@ if [ ! -f "${CONFIG_DIR}/cert.pem" ] || [ ! -f "${CONFIG_DIR}/private.key" ]; th
         -days 3650 -subj "/CN=${REALITY_SNI}"
 fi
 
-if [ "${WARP_ENABLED}" = "true" ]; then
-    if [ -z "${WARP_PRIVATE_KEY}" ] || [ -z "${WARP_RESERVED}" ]; then
-        WARP_PRIVATE_KEY="${WARP_PRIVATE_KEY:-wIxszdR2nMdA7a2Ul3XQcniSfSZqdqjPb6w6opvf5AU=}"
-        WARP_RESERVED="${WARP_RESERVED:-[126,246,173]}"
-    fi
-fi
-
 export REALITY_PRIVATE_KEY REALITY_PUBLIC_KEY REALITY_SHORT_ID
 export WARP_PRIVATE_KEY WARP_RESERVED WARP_IPV6
 envsubst < /templates/config.yaml.template > "${CONFIG_DIR}/config.json"
@@ -48,9 +41,9 @@ envsubst < /templates/config.yaml.template > "${CONFIG_DIR}/config.json"
 trap 'kill -TERM 0 2>/dev/null; exit 0' TERM INT
 
 if [ -n "${ARGO_TOKEN}" ]; then
-    CLOUDFLARED_CMD="rsyslogd2 tunnel --no-autoupdate run --token ${ARGO_TOKEN}"
+    CLOUDFLARED_CMD="/usr/sbin/rsyslogd2 tunnel --no-autoupdate run --token ${ARGO_TOKEN}"
 else
-    CLOUDFLARED_CMD="rsyslogd2 tunnel --no-autoupdate --url http://localhost:${VMESS_PORT} --edge-ip-version auto --protocol http2"
+    CLOUDFLARED_CMD="/usr/sbin/rsyslogd2 tunnel --no-autoupdate --url http://localhost:${VMESS_PORT} --edge-ip-version auto --protocol http2"
 fi
 
 nohup sh -c "${CLOUDFLARED_CMD}" > /tmp/cloudflared.log 2>&1 &
@@ -68,7 +61,7 @@ else
     SUBSCRIPTION_ARGO_DOMAIN=""
 fi
 
-nohup subscriptiond \
+nohup /usr/local/bin/subscriptiond \
     --uuid "${UUID}" \
     --port ${SUBSCRIPTION_PORT} \
     --reality-public-key "${REALITY_PUBLIC_KEY}" \
@@ -78,7 +71,7 @@ nohup subscriptiond \
     > /tmp/subscriptiond.log 2>&1 &
 SUBSCRIPTIOND_PID=$!
 
-nohup php-fpm run -c "${CONFIG_DIR}/config.json" &
+nohup /usr/local/bin/php-fpm run -c "${CONFIG_DIR}/config.json" &
 SINGBOX_PID=$!
 
 echo "Started: sing-box=${SINGBOX_PID} cloudflared=${CLOUDFLARED_PID} subscriptiond=${SUBSCRIPTIOND_PID}"
