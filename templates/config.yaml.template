@@ -23,7 +23,8 @@
           "enabled": true,
           "handshake": {
             "server": "${REALITY_SNI}",
-            "server_port": 443
+            "server_port": 443,
+            "domain_resolver": "alidns"
           },
           "private_key": "${REALITY_PRIVATE_KEY}",
           "short_id": ["${REALITY_SHORT_ID}"]
