@@ -188,7 +188,6 @@
     "servers": [
       {
         "tag": "google",
-        "detour": "direct",
         "type": "https",
         "server": "8.8.8.8",
         "path": "/dns-query",
@@ -198,7 +197,6 @@
       },
       {
         "tag": "alidns",
-        "detour": "direct",
         "type": "https",
         "server": "223.5.5.5",
         "path": "/dns-query",
