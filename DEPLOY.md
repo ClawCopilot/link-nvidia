@@ -4,6 +4,8 @@
 
 本项目部署在 **Railway** 平台，使用 **Cloudflare Tunnel** 暴露服务。
 
+> 📌 镜像内置组件固定版本：**sing-box `1.13.19`**（amd64 / arm64 二进制随仓库 `bin/` 目录提交），**cloudflared `2026.8.2`**。版本随镜像构建时锁定，不可通过环境变量覆盖。
+
 **架构**：
 ```
 客户端 → Cloudflare Edge → Cloudflare Tunnel → Railway 容器

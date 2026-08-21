@@ -1,3 +1,4 @@
+# link-nvidia 多架构镜像 —— 内置 sing-box 1.13.19 + cloudflared 2026.8.2
 FROM --platform=$BUILDPLATFORM golang:1.22-alpine AS builder
 ARG TARGETOS
 ARG TARGETARCH
@@ -13,9 +14,12 @@ RUN apk add --no-cache ca-certificates openssl tar bash tzdata jq gettext gcompa
 
 COPY bin/ /tmp/bin/
 
+# 内置组件固定版本（不可通过环境变量覆盖，二进制随 bin/ 目录提交）:
+#   sing-box:    1.13.19  (amd64 扁平二进制 / arm64 sing-box-1.13.19-linux-arm64/ 目录)
+#   cloudflared: 2026.8.2
 # 解压 sing-box 和 cloudflared 二进制，重命名为伪装名
 # amd64 tar: 扁平 sing-box 二进制（静态链接）
-# arm64 tar: sing-box-<version>-linux-arm64/ 目录，含 sing-box + libcronet.so（glibc 链接）
+# arm64 tar: sing-box-1.13.19-linux-arm64/ 目录，含 sing-box + libcronet.so（glibc 链接）
 # 关键: 必须用 -C /tmp/ 指定解压目录，否则 tar 解压到 CWD(/) 导致后续路径不匹配
 RUN set -e && \
     if [ "${TARGETARCH}" = "amd64" ]; then \

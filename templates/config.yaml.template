@@ -170,7 +170,6 @@
         "detour": "direct",
         "type": "https",
         "server": "dns.google",
-        "address": "dns.google",
         "path": "/dns-query"
       },
       {
@@ -178,7 +177,6 @@
         "detour": "direct",
         "type": "https",
         "server": "dns.alidns.com",
-        "address": "dns.alidns.com",
         "path": "/dns-query"
       },
       {

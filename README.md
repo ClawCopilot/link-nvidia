@@ -8,7 +8,7 @@
 [![Docker Image](https://img.shields.io/docker/image-size/clawcopilot/link-nvidia/latest)](https://github.com/ClawCopilot/link-nvidia/pkgs/container/link-nvidia)
 ![Multi-Arch](https://img.shields.io/badge/arch-amd64%20%7C%20arm64-blue)
 
-本项目提供基于 **sing-box 1.11** + **Cloudflare Tunnel** 的多协议代理 Docker 镜像，支持 5 种主流代理协议，一条命令即可部署。
+本项目提供基于 **sing-box 1.13.19** + **Cloudflare Tunnel** 的多协议代理 Docker 镜像，支持 5 种主流代理协议，一条命令即可部署。
 
 ## ✨ 核心特性
 
@@ -53,7 +53,6 @@ docker run -d \
 ### docker-compose 部署
 
 ```yaml
-version: '3.8'
 services:
   link-nvidia:
     image: ghcr.io/clawcopilot/link-nvidia:latest
@@ -73,8 +72,8 @@ services:
       ARGO_TOKEN: your-argo-token-here
       # Reality SNI 目标
       REALITY_SNI: www.microsoft.com
-      # 是否启用 WARP (默认 true)
-      WARP_ENABLED: "true"
+      # 是否启用 WARP (默认 false)
+      WARP_ENABLED: "false"
     volumes:
       # 可选：持久化 Reality 密钥和 WARP 配置
       - ./data:/var/log/apache2
@@ -91,12 +90,14 @@ services:
 | `REALITY_PUBLIC_KEY` | ❌ | 自动生成 | Reality 公钥 |
 | `REALITY_PRIVATE_KEY` | ❌ | 自动生成 | Reality 私钥 |
 | `REALITY_SHORT_ID` | ❌ | 随机 8 字符 | Reality 短 ID |
-| `WARP_ENABLED` | ❌ | `true` | 是否启用 WARP 出站 |
+| `WARP_ENABLED` | ❌ | `false` | 是否启用 WARP 出站 |
 | `WARP_PRIVATE_KEY` | ❌ | 备用配置 | WARP 私钥 |
 | `WARP_RESERVED` | ❌ | `[126,246,173]` | WARP reserved bytes |
-| `SING_BOX_VERSION` | ❌ | `1.13.19` | sing-box 版本 |
-| `CLOUDFLARED_VERSION` | ❌ | `2026.8.2` | cloudflared 版本 |
 | `KEEPALIVE_INTERVAL` | ❌ | `10m` | 保活间隔 |
+
+> 📌 **内置组件版本（随镜像构建时固定，不可通过环境变量覆盖）**：
+> - **sing-box**: `1.13.19`（amd64 / arm64 二进制已随仓库 `bin/` 目录提交）
+> - **cloudflared**: `2026.8.2`
 
 ## 📡 订阅端点
 
