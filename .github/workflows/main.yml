@@ -46,6 +46,7 @@ jobs:
           tags: |
             type=raw,value=latest
             type=semver,pattern={{version}},from=github.ref
+            type=sha,format=short,prefix=
 
       - name: Build and push (multi-arch)
         uses: docker/build-push-action@v5
