@@ -173,7 +173,7 @@ Railway 部署后，确保端口已开放：
 1. 进入 **Settings** → **Networking**
 2. 点击 **Create Public Port**
 3. 添加端口：`8081`
-4. 订阅地址：`http://你的Railway域名:8081/sub/clash`
+4. 订阅地址：`http://proxy.link-nvidia.techidaily.com/sub/clash`
 
 ---
 
@@ -264,7 +264,9 @@ Railway 默认不开放所有端口，需要在 **Networking** 中配置：
 
 1. 进入服务 **Settings** → **Networking**
 2. 点击 **Create Public Port**
-3. 添加端口：`443`、`8080`、`8081`
+3. 添加端口：`443`、`8443`、`9443`、`9444`、`8081`
+
+**注意**：`8080` 不需要开放，因为 VMess WS 通过 Argo 隧道访问。
 
 ### 持久化数据丢失
 
@@ -298,11 +300,11 @@ Railway 默认有基础防护，但建议：
 - [ ] GitHub Packages 镜像已推送
 - [ ] Railway 项目已创建
 - [ ] 环境变量已配置（ARGO_TOKEN 必填）
-- [ ] 持久化 Volume 已挂载
-- [ ] 公共端口已开放（443, 8080, 8081）
+- [ ] 持久化 Volume 已挂载（可选，密钥在内存中，重启会变）
+- [ ] 公共端口已开放（443, 8443, 9443, 9444, 8081）
+- [ ] Cloudflare Tunnel 已配置 5 个 Public Hostname
 - [ ] 部署状态为 **Healthy**
-- [ ] Reality 密钥已获取
-- [ ] 客户端测试连接成功
+- [ ] 客户端测试连接成功（订阅自动包含 Reality 密钥）
 
 ---
 
