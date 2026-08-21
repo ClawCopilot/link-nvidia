@@ -34,9 +34,11 @@ if [ ! -f "${CONFIG_DIR}/cert.pem" ] || [ ! -f "${CONFIG_DIR}/private.key" ]; th
         -days 3650 -subj "/CN=${REALITY_SNI}"
 fi
 
+# 所有模板中引用的变量都必须 export，否则 envsubst 只会把未导出的 shell 变量当作未定义替换为空串
+export UUID REALITY_SNI
 export REALITY_PRIVATE_KEY REALITY_PUBLIC_KEY REALITY_SHORT_ID
 export WARP_PRIVATE_KEY WARP_RESERVED WARP_IPV6
-envsubst < /templates/config.yaml.template > "${CONFIG_DIR}/config.json"
+export ARGO_DOMAIN
 
 trap 'kill -TERM 0 2>/dev/null; exit 0' TERM INT
 
@@ -60,6 +62,9 @@ if [ -n "${ARGO_DOMAIN}" ]; then
 else
     SUBSCRIPTION_ARGO_DOMAIN=""
 fi
+
+# 必须在 ARGO_DOMAIN 解析之后再渲染配置（ARGO_DOMAIN 已在上方 export，此处赋值会同步到环境）
+envsubst < /templates/config.yaml.template > "${CONFIG_DIR}/config.json"
 
 nohup /usr/local/bin/subscriptiond \
     --uuid "${UUID}" \
