@@ -10,7 +10,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  SING_BOX_VERSION: 1.12.9
+  SING_BOX_VERSION: 1.13.19
   CLOUDFLARED_VERSION: 2026.8.2
 
 jobs:

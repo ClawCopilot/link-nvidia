@@ -6,7 +6,7 @@ COPY subscriptiond/ .
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags="-s -w" -o subscriptiond .
 
 FROM alpine:3.20
-ARG SING_BOX_VERSION=1.12.9
+ARG SING_BOX_VERSION=1.13.19
 ARG CLOUDFLARED_VERSION=2026.8.2
 
 LABEL org.opencontainers.image.title="link-nvidia"
