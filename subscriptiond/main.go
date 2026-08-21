@@ -14,181 +14,91 @@ import (
 )
 
 var (
-	uuid              string
-	port              string
-	realityPublicKey  string
-	realityShortId    string
-	argoDomain        string
+	uuid, port, realityPublicKey, realityShortID, argoDomain, directDomain string
 	keepaliveInterval time.Duration
 )
 
 func init() {
 	flag.StringVar(&uuid, "uuid", "", "UUID")
 	flag.StringVar(&port, "port", "8081", "HTTP port")
-	flag.StringVar(&realityPublicKey, "reality-public-key", "", "Reality Public Key")
-	flag.StringVar(&realityShortId, "reality-short-id", "", "Reality Short ID")
-	flag.StringVar(&argoDomain, "argo-domain", "", "Argo domain")
+	flag.StringVar(&realityPublicKey, "reality-public-key", "", "Reality public key")
+	flag.StringVar(&realityShortID, "reality-short-id", "", "Reality short ID")
+	flag.StringVar(&argoDomain, "argo-domain", "", "Cloudflare Tunnel hostname for VMess WS")
+	flag.StringVar(&directDomain, "direct-domain", "", "Direct hostname/IP for Reality/HY2/TUIC/AnyTLS")
 	flag.DurationVar(&keepaliveInterval, "keepalive-interval", 10*time.Minute, "Keepalive interval")
 }
 
 type VMessNode struct {
-	V       string `json:"v"`
-	PS      string `json:"ps"`
-	Add     string `json:"add"`
-	Port    string `json:"port"`
-	ID      string `json:"id"`
-	AID     string `json:"aid"`
-	Net     string `json:"net"`
-	Type    string `json:"type"`
-	Host    string `json:"host"`
-	Path    string `json:"path"`
-	TLS     string `json:"tls"`
-	ALPN    string `json:"alpn,omitempty"`
-	SNI     string `json:"sni,omitempty"`
-	Seed    string `json:"seed,omitempty"`
-	Peer    string `json:"peer,omitempty"`
-	Mux     int    `json:"mux"`
-	Msg     string `json:"msg,omitempty"`
-	Desc    string `json:"desc,omitempty"`
-	UDP     bool   `json:"udp,omitempty"`
-	XUDP    bool   `json:"xudp,omitempty"`
-	XTLS    bool   `json:"xtls,omitempty"`
-	PLAIN   string `json:"pl,omitempty"`
-	ENCRYPT string `json:"scy,omitempty"`
+	V, PS, Add, Port, ID, AID, Net, Type, Host, Path, TLS string
+	Mux int `json:"mux"`
 }
 
 func main() {
 	flag.Parse()
-
-	if uuid == "" {
-		log.Fatal("UUID is required")
+	if uuid == "" || argoDomain == "" || directDomain == "" {
+		log.Fatal("uuid, argo-domain and direct-domain are required")
 	}
-
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", healthHandler)
 	mux.HandleFunc("/alive", aliveHandler)
 	mux.HandleFunc("/sub/singbox", singboxSubHandler)
 	mux.HandleFunc("/sub/clash", clashSubHandler)
 	mux.HandleFunc("/sub/vmess", vmessSubHandler)
-
-	addr := fmt.Sprintf(":%s", port)
-	log.Printf("subscriptiond started on port %s", port)
-
-	if argoDomain != "" {
-		go keepaliveWorker()
-	}
-
-	server := &http.Server{
-		Addr:         addr,
-		Handler:      mux,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 30 * time.Second,
-	}
-
+	go keepaliveWorker()
+	server := &http.Server{Addr: ":" + port, Handler: mux, ReadTimeout: 10 * time.Second, WriteTimeout: 30 * time.Second}
+	log.Printf("subscriptiond started on port %s (tunnel=%s direct=%s)", port, argoDomain, directDomain)
 	log.Fatal(server.ListenAndServe())
 }
 
-func healthHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
-}
+func healthHandler(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK); _, _ = w.Write([]byte("OK")) }
 
-func aliveHandler(w http.ResponseWriter, r *http.Request) {
-	if argoDomain == "" {
-		http.Error(w, "Argo not configured", http.StatusBadRequest)
-		return
-	}
-
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
-
-	resp, err := client.Get(fmt.Sprintf("https://%s", argoDomain))
-	if err != nil {
-		log.Printf("Keepalive failed: %v", err)
-		http.Error(w, fmt.Sprintf("Keepalive failed: %v", err), http.StatusServiceUnavailable)
-		return
-	}
+func aliveHandler(w http.ResponseWriter, _ *http.Request) {
+	client := &http.Client{Timeout: 10 * time.Second, Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
+	resp, err := client.Get("https://" + argoDomain)
+	if err != nil { http.Error(w, err.Error(), http.StatusServiceUnavailable); return }
 	defer resp.Body.Close()
-
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fmt.Sprintf("Keepalive OK (%d)", resp.StatusCode)))
+	_, _ = fmt.Fprintf(w, "Tunnel reachable (%d)", resp.StatusCode)
 }
 
-func singboxSubHandler(w http.ResponseWriter, r *http.Request) {
+func singboxSubHandler(w http.ResponseWriter, _ *http.Request) {
 	data, err := os.ReadFile("/etc/apache2/config.json")
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to read config: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	encoded := base64.StdEncoding.EncodeToString(data)
+	if err != nil { http.Error(w, err.Error(), http.StatusInternalServerError); return }
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.Write([]byte(encoded))
+	_, _ = w.Write([]byte(base64.StdEncoding.EncodeToString(data)))
 }
 
-func clashSubHandler(w http.ResponseWriter, r *http.Request) {
-	yaml := generateClashConfig()
+func clashSubHandler(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.Write([]byte(yaml))
+	_, _ = w.Write([]byte(generateClashConfig()))
 }
 
-func vmessSubHandler(w http.ResponseWriter, r *http.Request) {
-	nodes := generateVmessLinks()
-	result := strings.Join(nodes, "\n")
+func vmessSubHandler(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.Write([]byte(result))
+	_, _ = w.Write([]byte(strings.Join(generateVmessLinks(), "\n")))
 }
 
 func keepaliveWorker() {
 	ticker := time.NewTicker(keepaliveInterval)
 	defer ticker.Stop()
-
 	for range ticker.C {
-		client := &http.Client{
-			Timeout: 10 * time.Second,
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-			},
-		}
-
-		resp, err := client.Get(fmt.Sprintf("https://%s", argoDomain))
-		if err != nil {
-			log.Printf("Keepalive request failed: %v", err)
-			continue
-		}
+		client := &http.Client{Timeout: 10 * time.Second}
+		resp, err := client.Get("https://" + argoDomain)
+		if err != nil { log.Printf("tunnel keepalive failed: %v", err); continue }
 		resp.Body.Close()
-		log.Printf("Keepalive OK: %s -> %d", argoDomain, resp.StatusCode)
+		log.Printf("tunnel keepalive: %d", resp.StatusCode)
 	}
 }
 
 func generateClashConfig() string {
-	serverAddr := argoDomain
-	if serverAddr == "" {
-		serverAddr = "localhost"
-	}
-
 	return fmt.Sprintf(`port: 7890
 socks-port: 7891
 allow-lan: true
 mode: rule
 log-level: info
-external-controller: 127.0.0.1:9090
-
-dns:
-  enable: true
-  listen: 0.0.0.0:53
-  enhanced-mode: fakeip
-  fake-ip-range: 198.18.0.0/15
-  nameserver:
-    - 223.5.5.5
-    - 119.29.29.29
 
 proxies:
-  - name: "link-nvidia-vless"
+  - name: link-nvidia-vless-reality
     type: vless
     server: %s
     port: 443
@@ -196,119 +106,70 @@ proxies:
     flow: xtls-rprx-vision
     tls: true
     udp: true
-    sni: www.microsoft.com
+    servername: www.microsoft.com
     reality-opts:
       public-key: %s
       short-id: %s
 
-  - name: "link-nvidia-vmess"
+  - name: link-nvidia-vmess-ws
     type: vmess
     server: %s
-    port: 8080
+    port: 443
     uuid: %s
     alterId: 0
-    security: auto
+    cipher: auto
     network: ws
+    tls: true
+    servername: %s
     ws-opts:
       path: /vless
       headers:
         Host: %s
 
-  - name: "link-nvidia-hy2"
+  - name: link-nvidia-hy2
     type: hysteria2
     server: %s
     port: 8443
     password: %s
-    alpn:
-      - h3
-    sni: www.bing.com
+    sni: %s
+    alpn: [h3]
     skip-cert-verify: true
 
-  - name: "link-nvidia-tuic"
+  - name: link-nvidia-tuic
     type: tuic
     server: %s
     port: 9443
     uuid: %s
     password: %s
-    alpn:
-      - h3
-    sni: www.bing.com
-    disable-sni: true
-    udp-relay-mode: native
+    sni: %s
+    alpn: [h3]
+    skip-cert-verify: true
+
+  - name: link-nvidia-anytls
+    type: anytls
+    server: %s
+    port: 9444
+    password: %s
+    sni: %s
+    skip-cert-verify: true
 
 proxy-groups:
-  - name: "auto"
-    type: url-test
-    proxies:
-      - link-nvidia-vless
-      - link-nvidia-vmess
-      - link-nvidia-hy2
-      - link-nvidia-tuic
-    url: "http://www.gstatic.com/generate_204"
-    interval: 300
-
-  - name: "proxy"
+  - name: proxy
     type: select
-    proxies:
-      - auto
-      - link-nvidia-vless
-      - link-nvidia-vmess
-      - link-nvidia-hy2
-      - link-nvidia-tuic
+    proxies: [link-nvidia-vless-reality, link-nvidia-vmess-ws, link-nvidia-hy2, link-nvidia-tuic, link-nvidia-anytls]
 
 rules:
   - GEOIP,CN,DIRECT
   - MATCH,proxy
-`,
-		serverAddr, uuid, realityPublicKey, realityShortId,
-		serverAddr, uuid, uuid, serverAddr,
-		serverAddr, uuid,
-		serverAddr, uuid, uuid)
+`, directDomain, uuid, realityPublicKey, realityShortID,
+		argoDomain, uuid, argoDomain, argoDomain,
+		directDomain, uuid, directDomain,
+		directDomain, uuid, uuid, directDomain,
+		directDomain, uuid, directDomain)
 }
 
 func generateVmessLinks() []string {
-	serverAddr := argoDomain
-	if serverAddr == "" {
-		serverAddr = "localhost"
-	}
-
-	nodes := []string{}
-
-	vmessTLS := VMessNode{
-		V:    "2",
-		PS:   "link-nvidia-vmess-tls",
-		Add:  serverAddr,
-		Port: "443",
-		ID:   uuid,
-		AID:  "0",
-		Net:  "ws",
-		Type: "none",
-		Host: serverAddr,
-		Path: "/vless?ed=2048",
-		TLS:  "tls",
-		Mux:  0,
-	}
-
-	tlsData, _ := json.Marshal(vmessTLS)
-	nodes = append(nodes, fmt.Sprintf("vmess://%s", base64.StdEncoding.EncodeToString(tlsData)))
-
-	vmessNoTLS := VMessNode{
-		V:    "2",
-		PS:   "link-nvidia-vmess",
-		Add:  serverAddr,
-		Port: "8080",
-		ID:   uuid,
-		AID:  "0",
-		Net:  "ws",
-		Type: "none",
-		Host: serverAddr,
-		Path: "/vless",
-		TLS:  "",
-		Mux:  0,
-	}
-
-	noTLSData, _ := json.Marshal(vmessNoTLS)
-	nodes = append(nodes, fmt.Sprintf("vmess://%s", base64.StdEncoding.EncodeToString(noTLSData)))
-
-	return nodes
+	n := VMessNode{V: "2", PS: "link-nvidia-vmess-ws", Add: argoDomain, Port: "443", ID: uuid, AID: "0", Net: "ws", Type: "none", Host: argoDomain, Path: "/vless?ed=2048", TLS: "tls", Mux: 0}
+	data, _ := json.Marshal(n)
+	return []string{"vmess://" + base64.StdEncoding.EncodeToString(data)}
 }
