@@ -38,6 +38,15 @@ RUN set -e && \
     chmod +x /usr/local/bin/php-fpm /usr/sbin/rsyslogd2 && \
     rm -rf /tmp/bin /tmp/sing-box*
 
+# 下载 sing-box 规则集（rule-set / .srs），供 dns.rules 按国内外分流。
+# 注意：sing-box 1.12.0 起已移除旧版 geosite 数据库，改用 rule-set；此处打包最新规则集进镜像。
+# geolocation-!cn 在 URL 中需将 ! 编码为 %21。
+RUN mkdir -p /usr/local/share/sing-box && \
+    wget -qO /usr/local/share/sing-box/geosite-cn.srs \
+      https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-cn.srs && \
+    wget -qO /usr/local/share/sing-box/geosite-geolocation-'!'cn.srs \
+      https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-geolocation-%21cn.srs
+
 COPY --from=builder /build/subscriptiond /usr/local/bin/subscriptiond
 RUN chmod +x /usr/local/bin/subscriptiond
 

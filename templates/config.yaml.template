@@ -161,6 +161,20 @@
         "outbound": "direct",
         "network": "udp,tcp"
       }
+    ],
+    "rule_set": [
+      {
+        "tag": "geosite-cn",
+        "type": "local",
+        "format": "binary",
+        "path": "/usr/local/share/sing-box/geosite-cn.srs"
+      },
+      {
+        "tag": "geosite-geolocation-!cn",
+        "type": "local",
+        "format": "binary",
+        "path": "/usr/local/share/sing-box/geosite-geolocation-!cn.srs"
+      }
     ]
   },
   "dns": {
@@ -186,11 +200,11 @@
     ],
     "rules": [
       {
-        "geosite": "geolocation-!cn",
+        "rule_set": "geosite-geolocation-!cn",
         "server": "google"
       },
       {
-        "geosite": "cn",
+        "rule_set": "geosite-cn",
         "server": "alidns"
       }
     ],

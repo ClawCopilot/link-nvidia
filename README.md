@@ -98,6 +98,8 @@ services:
 > 📌 **内置组件版本（随镜像构建时固定，不可通过环境变量覆盖）**：
 > - **sing-box**: `1.13.19`（amd64 / arm64 二进制已随仓库 `bin/` 目录提交）
 > - **cloudflared**: `2026.8.2`
+>
+> ⚠️ **DNS 国内外分流说明**：sing-box 1.12.0 起已**移除**旧版 geosite/geoip 数据库机制，因此本镜像改用 **rule-set（`.srs` 规则集）** 实现分流——构建时从 SagerNet 仓库下载 `geosite-cn.srs` 与 `geosite-geolocation-!cn.srs` 打包进镜像，由 `dns.rules` 通过 `rule_set` 引用。配置模板中**不再出现** `geosite` 字段。
 
 ## 📡 订阅端点
 
