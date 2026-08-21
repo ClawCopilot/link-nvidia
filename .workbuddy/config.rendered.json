@@ -1,0 +1,228 @@
+{
+  "log": {
+    "disabled": false,
+    "level": "info",
+    "timestamp": true
+  },
+  "inbounds": [
+    {
+      "type": "vless",
+      "tag": "vless-in",
+      "listen": "::",
+      "listen_port": 443,
+      "users": [
+        {
+          "uuid": "1b4db7eb-4057-5ddf-91e0-36dec72071f5",
+          "flow": "xtls-rprx-vision"
+        }
+      ],
+      "tls": {
+        "enabled": true,
+        "server_name": "www.microsoft.com",
+        "reality": {
+          "enabled": true,
+          "handshake": {
+            "server": "www.microsoft.com",
+            "server_port": 443,
+            "domain_resolver": "alidns"
+          },
+          "private_key": "iEN-abAE80W942AqjpS0k6a6UenauvBca45P1QTFLnw",
+          "short_id": ["3ff4bf41"]
+        }
+      }
+    },
+    {
+      "type": "vmess",
+      "tag": "vmess-in",
+      "listen": "::",
+      "listen_port": 8080,
+      "users": [
+        {
+          "uuid": "1b4db7eb-4057-5ddf-91e0-36dec72071f5",
+          "alterId": 0
+        }
+      ],
+      "transport": {
+        "type": "ws",
+        "path": "/vless",
+        "max_early_data": 2048,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "tls": {
+        "enabled": false,
+        "server_name": ""
+      }
+    },
+    {
+      "type": "hysteria2",
+      "tag": "hy2-in",
+      "listen": "::",
+      "listen_port": 8443,
+      "users": [
+        {
+          "password": "1b4db7eb-4057-5ddf-91e0-36dec72071f5"
+        }
+      ],
+      "ignore_client_bandwidth": false,
+      "tls": {
+        "enabled": true,
+        "alpn": ["h3"],
+        "certificate_path": "/etc/apache2/cert.pem",
+        "key_path": "/etc/apache2/private.key"
+      }
+    },
+    {
+      "type": "tuic",
+      "tag": "tuic-in",
+      "listen": "::",
+      "listen_port": 9443,
+      "users": [
+        {
+          "uuid": "1b4db7eb-4057-5ddf-91e0-36dec72071f5",
+          "password": "1b4db7eb-4057-5ddf-91e0-36dec72071f5"
+        }
+      ],
+      "congestion_control": "bbr",
+      "tls": {
+        "enabled": true,
+        "alpn": ["h3"],
+        "certificate_path": "/etc/apache2/cert.pem",
+        "key_path": "/etc/apache2/private.key"
+      }
+    },
+    {
+      "type": "anytls",
+      "tag": "anytls-in",
+      "listen": "::",
+      "listen_port": 9444,
+      "users": [
+        {
+          "password": "1b4db7eb-4057-5ddf-91e0-36dec72071f5"
+        }
+      ],
+      "padding_scheme": [],
+      "tls": {
+        "enabled": true,
+        "certificate_path": "/etc/apache2/cert.pem",
+        "key_path": "/etc/apache2/private.key"
+      }
+    }
+  ],
+  "endpoints": [
+    {
+      "type": "wireguard",
+      "tag": "warp-out",
+      "address": [
+        "172.16.0.2/32",
+        "fd00::2/128"
+      ],
+      "private_key": "wIxszdR2nMdA7a2Ul3XQcniSfSZqdqjPb6w6opvf5AU=",
+      "peers": [
+        {
+          "address": "162.159.192.200",
+          "port": 2408,
+          "public_key": "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=",
+          "allowed_ips": ["0.0.0.0/0", "::/0"],
+          "reserved": [126,246,173]
+        }
+      ]
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "direct",
+      "tag": "direct"
+    },
+    {
+      "type": "block",
+      "tag": "block"
+    },
+    {
+      "type": "socks",
+      "tag": "socks-out",
+      "server": "127.0.0.1",
+      "server_port": 40000,
+      "version": "5"
+    }
+  ],
+  "route": {
+    "rules": [
+      {
+        "action": "sniff"
+      },
+      {
+        "action": "route",
+        "protocol": ["quic", "stun"],
+        "outbound": "block"
+      },
+      {
+        "action": "route",
+        "outbound": "warp-out",
+        "domain_suffix": ["yg_kkk"]
+      },
+      {
+        "action": "route",
+        "outbound": "direct",
+        "network": ["udp", "tcp"]
+      }
+    ],
+    "rule_set": [
+      {
+        "tag": "geosite-cn",
+        "type": "local",
+        "format": "binary",
+        "path": "/usr/local/share/sing-box/geosite-cn.srs"
+      },
+      {
+        "tag": "geosite-geolocation-!cn",
+        "type": "local",
+        "format": "binary",
+        "path": "/usr/local/share/sing-box/geosite-geolocation-!cn.srs"
+      }
+    ],
+    "default_domain_resolver": {
+      "server": "alidns"
+    }
+  },
+  "dns": {
+    "servers": [
+      {
+        "tag": "google",
+        "detour": "direct",
+        "type": "https",
+        "server": "8.8.8.8",
+        "path": "/dns-query",
+        "tls": {
+          "server_name": "dns.google"
+        }
+      },
+      {
+        "tag": "alidns",
+        "detour": "direct",
+        "type": "https",
+        "server": "223.5.5.5",
+        "path": "/dns-query",
+        "tls": {
+          "server_name": "dns.alidns.com"
+        }
+      },
+      {
+        "tag": "fakeip",
+        "type": "fakeip",
+        "inet4_range": "198.18.0.0/15",
+        "inet6_range": "fc00::/18"
+      }
+    ],
+    "rules": [
+      {
+        "rule_set": "geosite-geolocation-!cn",
+        "server": "google"
+      },
+      {
+        "rule_set": "geosite-cn",
+        "server": "alidns"
+      }
+    ],
+    "final": "google"
+  }
+}
