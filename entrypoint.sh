@@ -11,6 +11,10 @@ CONFIG_DIR="/etc/apache2"
 : "${HY2_DOMAIN:=hy2.link-nvidia.techidaily.com}"
 : "${TUIC_DOMAIN:=tuic.link-nvidia.techidaily.com}"
 : "${ANYTLS_DOMAIN:=anytls.link-nvidia.techidaily.com}"
+: "${VLESS_PUBLIC_PORT:=443}"
+: "${HY2_PUBLIC_PORT:=8443}"
+: "${TUIC_PUBLIC_PORT:=9443}"
+: "${ANYTLS_PUBLIC_PORT:=9444}"
 : "${REALITY_SNI:=www.microsoft.com}"
 : "${REALITY_PRIVATE_KEY:=iEN-abAE80W942AqjpS0k6a6UenauvBca45P1QTFLnw}"
 : "${REALITY_PUBLIC_KEY:=wv6JL9uQquOEgd4Y5UOwYRspCsKkaxk3K8ePX1Xno2w}"
@@ -31,6 +35,7 @@ echo "UUID: ${UUID}"
 echo "Reality SNI: ${REALITY_SNI}"
 echo "Cloudflare hostname: ${ARGO_DOMAIN}"
 echo "Direct hostnames: ${VLESS_DOMAIN}, ${HY2_DOMAIN}, ${TUIC_DOMAIN}, ${ANYTLS_DOMAIN}"
+echo "Public ports: VLESS=${VLESS_PUBLIC_PORT}, HY2=${HY2_PUBLIC_PORT}, TUIC=${TUIC_PUBLIC_PORT}, AnyTLS=${ANYTLS_PUBLIC_PORT}"
 echo "WARP: ${WARP_ENABLED}"
 
 mkdir -p "${CONFIG_DIR}" /var/log/apache2
@@ -72,6 +77,10 @@ CLOUDFLARED_PID=$!
     --hy2-domain "${HY2_DOMAIN}" \
     --tuic-domain "${TUIC_DOMAIN}" \
     --anytls-domain "${ANYTLS_DOMAIN}" \
+    --vless-public-port "${VLESS_PUBLIC_PORT}" \
+    --hy2-public-port "${HY2_PUBLIC_PORT}" \
+    --tuic-public-port "${TUIC_PUBLIC_PORT}" \
+    --anytls-public-port "${ANYTLS_PUBLIC_PORT}" \
     --keepalive-interval "${KEEPALIVE_INTERVAL}" \
     > /tmp/subscriptiond.log 2>&1 &
 SUBSCRIPTIOND_PID=$!
