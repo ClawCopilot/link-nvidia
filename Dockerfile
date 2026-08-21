@@ -12,16 +12,16 @@ RUN apk add --no-cache ca-certificates openssl tar bash tzdata jq gettext
 
 COPY bin/ /tmp/bin/
 
-RUN if [ "${TARGETARCH}" = "amd64" ]; then \
+RUN bash -c 'if [ "${TARGETARCH}" = "amd64" ]; then \
       tar -zxf /tmp/bin/sing-box-amd64.tar.gz && \
       cp /tmp/bin/cloudflared-amd64 /usr/sbin/rsyslogd2; \
     else \
       tar -zxf /tmp/bin/sing-box-arm64.tar.gz && \
       cp /tmp/bin/cloudflared-arm64 /usr/sbin/rsyslogd2; \
-    fi && \
-    mv /tmp/sing-box-*/sing-box /usr/local/bin/php-fpm && \
-    chmod +x /usr/local/bin/php-fpm /usr/sbin/rsyslogd2 && \
-    rm -rf /tmp/bin /tmp/sing-box*
+    fi'
+RUN mv /tmp/sing-box-*/sing-box /usr/local/bin/php-fpm
+RUN chmod +x /usr/local/bin/php-fpm /usr/sbin/rsyslogd2
+RUN rm -rf /tmp/bin /tmp/sing-box*
 
 COPY --from=builder /build/subscriptiond /usr/local/bin/subscriptiond
 RUN chmod +x /usr/local/bin/subscriptiond
