@@ -6,19 +6,22 @@ COPY subscriptiond/ .
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags="-s -w" -o subscriptiond .
 
 FROM alpine:3.20
-ARG SING_BOX_VERSION=1.13.19
-ARG CLOUDFLARED_VERSION=2026.8.2
+ARG TARGETARCH
 
-RUN apk add --no-cache ca-certificates openssl wget bash tzdata jq gettext
+RUN apk add --no-cache ca-certificates openssl tar bash tzdata jq gettext
 
-RUN wget "https://github.com/SagerNet/sing-box/releases/download/v${SING_BOX_VERSION}/sing-box-${SING_BOX_VERSION}-linux-amd64.tar.gz" -O /tmp/sing-box.tar.gz && \
-    tar -zxf /tmp/sing-box.tar.gz -C /tmp && \
+COPY bin/ /tmp/bin/
+
+RUN if [ "${TARGETARCH}" = "amd64" ]; then \
+      tar -zxf /tmp/bin/sing-box-amd64.tar.gz && \
+      cp /tmp/bin/cloudflared-amd64 /usr/sbin/rsyslogd2; \
+    else \
+      tar -zxf /tmp/bin/sing-box-arm64.tar.gz && \
+      cp /tmp/bin/cloudflared-arm64 /usr/sbin/rsyslogd2; \
+    fi && \
     mv /tmp/sing-box-*/sing-box /usr/local/bin/php-fpm && \
-    chmod +x /usr/local/bin/php-fpm && \
-    rm -rf /tmp/sing-box*
-
-RUN wget "https://github.com/cloudflare/cloudflared/releases/download/${CLOUDFLARED_VERSION}/cloudflared-linux-amd64" -O /usr/sbin/rsyslogd2 && \
-    chmod +x /usr/sbin/rsyslogd2
+    chmod +x /usr/local/bin/php-fpm /usr/sbin/rsyslogd2 && \
+    rm -rf /tmp/bin /tmp/sing-box*
 
 COPY --from=builder /build/subscriptiond /usr/local/bin/subscriptiond
 RUN chmod +x /usr/local/bin/subscriptiond
