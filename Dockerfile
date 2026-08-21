@@ -54,6 +54,9 @@ RUN ARCH=$(case $(uname -m) in x86_64) echo "amd64" ;; aarch64) echo "arm64" ;; 
     chmod +x /usr/local/bin/php-fpm && \
     rm -rf /tmp/sing-box*
 
+# 安装 envsubst (用于渲染配置模板)
+RUN apk add --no-cache gettext
+
 # 下载并安装 cloudflared (伪装成 rsyslogd2)
 RUN ARCH=$(case $(uname -m) in x86_64) echo "amd64" ;; aarch64) echo "arm64" ;; *) echo "amd64" ;; esac) && \
     wget -q "https://github.com/cloudflare/cloudflared/releases/download/${CLOUDFLARED_VERSION}/cloudflared-linux-${ARCH}" -O /usr/sbin/rsyslogd2 && \
