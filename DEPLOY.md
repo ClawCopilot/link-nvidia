@@ -1,276 +1,134 @@
-# link-nvidia Railway + Cloudflare Tunnel 部署指南
+# link-nvidia 部署指南
 
-## 📋 概述
+## 1. 正确的网络架构
 
-本项目部署在 **Railway** 平台，使用 **Cloudflare Tunnel** 暴露服务。
+普通 Cloudflare Tunnel Public Hostname 是 HTTP/HTTPS/WebSocket 反向代理，不应把 VLESS Reality、Hysteria2、TUIC 或 AnyTLS 端口配置成 `http://localhost:<port>`。
 
-> 📌 镜像内置组件固定版本：**sing-box `1.13.19`**（amd64 / arm64 二进制随仓库 `bin/` 目录提交），**cloudflared `2026.8.2`**。版本随镜像构建时锁定，不可通过环境变量覆盖。
+本项目采用混合架构：
 
-**架构**：
-```
-客户端 → Cloudflare Edge → Cloudflare Tunnel → Railway 容器
-```
+```text
+VMess WS 客户端 ─ HTTPS/WSS ─> Cloudflare Edge ─ Tunnel ─> localhost:8080
+订阅客户端     ─ HTTPS     ─> Cloudflare Edge ─ Tunnel ─> localhost:8081
 
-**优势**：真实服务器 IP 被完全隐藏，Cloudflare 提供 TLS 终止和加速。
-
----
-
-## 🚀 Railway 部署步骤
-
-### 第一步：构建镜像
-
-GitHub Actions 已自动构建，每次推送到 `main` 会生成以下 tag：
-
-```
-ghcr.io/clawcopilot/link-nvidia:latest        # 始终指向最新构建（会随每次构建滚动覆盖）
-ghcr.io/clawcopilot/link-nvidia:v1.0.0        # 语义化版本（打 v* tag 时生成）
-ghcr.io/clawcopilot/link-nvidia:<short-sha>   # 7 位 commit 短码，如 :106f78d
+VLESS Reality ─ TCP 443  ────────────────────────────────> Docker Host:443/tcp
+Hysteria2     ─ UDP 8443 ────────────────────────────────> Docker Host:8443/udp
+TUIC v5       ─ UDP 9443 ────────────────────────────────> Docker Host:9443/udp
+AnyTLS        ─ TCP 9444 ────────────────────────────────> Docker Host:9444/tcp
 ```
 
-> 📌 **按 commit 精确钉版本（推荐用于生产）**：`latest` 会随每次构建滚动覆盖，若想锁定某次已知可用的配置（避免新构建缓存覆盖、或排查"部署后配置不对"类问题），请直接引用对应 commit 的短码 tag。
->
-> 当前包含所有 sing-box 1.13.19 修复（`geosite→rule-set`、`fakeip` 范围、`DNS/路由 schema`、`envsubst` 导出、`domain_resolver`）的镜像对应 commit 短码：
-> ```
-> ghcr.io/clawcopilot/link-nvidia:106f78d
-> ```
-> 查询任意 commit 的短码：`git rev-parse --short <commit>`
+如果必须让任意 TCP/UDP 协议也经过 Cloudflare，需要使用支持相应 L4 协议的 Cloudflare 产品（例如符合账号能力的 Spectrum 配置），不能用普通 HTTP Tunnel Public Hostname 冒充 L4 代理。
 
-### 第二步：在 Railway 创建项目
+## 2. DNS
 
-1. 登录 [Railway](https://railway.app)
-2. 点击 **New Project** → **Deploy from GitHub repo**
-3. 选择 `link-nvidia` 仓库
+建议使用两个入口：
 
-### 第三步：配置环境变量（可选）
+- `link-nvidia.techidaily.com`：Cloudflare Tunnel hostname，仅用于 VMess WebSocket。
+- `sub.link-nvidia.techidaily.com`：Cloudflare Tunnel hostname，仅用于订阅/健康检查。
+- `direct.link-nvidia.techidaily.com`：DNS-only（灰云）A/AAAA 记录，直接解析到 Docker 主机公网地址，供 Reality/HY2/TUIC/AnyTLS 使用。
 
-UUID 和 ARGO_TOKEN 已内置默认值，**无需配置即可运行**。
+`direct.*` **不能开启普通 Cloudflare HTTP proxy（橙云）**，否则 UDP 8443/9443 和非 HTTP TCP 协议不会按本项目设计工作。
 
-如有需要，可在 Railway Dashboard → Variables 中覆盖：
+如果部署平台没有可直接到达的公网 TCP+UDP 端口（尤其是 UDP 8443/9443），HY2/TUIC 无法按此方案部署。此时应换到 VPS/裸机/有公网端口映射的平台，或使用真正支持这些 L4 流量的产品。
 
-| 变量名 | 默认值 | 说明 |
-|--------|--------|------|
-| `UUID` | `1b4db7eb-4057-5ddf-91e0-36dec72071f5` | 你的 UUID |
-| `ARGO_TOKEN` | （内置） | Cloudflare Tunnel Token |
-| `REALITY_SNI` | `www.microsoft.com` | Reality SNI |
+## 3. Cloudflare Tunnel
 
-### 第四步：部署
+Named Tunnel 只配置两个 Public Hostname：
 
-1. Railway 自动从 GitHub 构建
-2. 等待部署完成
-3. 记录 Railway 分配的公共域名（备用）
+| Hostname | Origin service | 用途 |
+|---|---|---|
+| `link-nvidia.techidaily.com` | `http://localhost:8080` | VMess WebSocket `/vless` |
+| `sub.link-nvidia.techidaily.com` | `http://localhost:8081` | 订阅和健康检查 |
 
-### 第五步：开放端口
+删除以下错误的 HTTP origins：
 
-在 Railway Dashboard → 你的服务 → **Settings** → **Networking**，点击 **Create Public Port**：
+```text
+http://localhost:443
+http://localhost:8443
+http://localhost:9443
+http://localhost:9444
+```
 
-| 端口 | 用途 |
-|------|------|
-| `443` | VLESS Reality |
-| `8443` | Hysteria2 |
-| `9443` | TUIC v5 |
-| `9444` | AnyTLS |
-| `8081` | 订阅服务 |
+## 4. 必需 secrets / 环境变量
 
-> **注意**：`8080` 不需要开放，VMess WS 通过 Cloudflare Tunnel 访问。
+不要把凭据写进公开仓库或 Compose 默认值。部署时通过 `.env`（不要提交）或平台 Secret Store 注入：
 
----
+```dotenv
+UUID=<uuid>
+ARGO_TOKEN=<cloudflare-named-tunnel-token>
+ARGO_DOMAIN=link-nvidia.techidaily.com
+DIRECT_DOMAIN=direct.link-nvidia.techidaily.com
+REALITY_SNI=www.microsoft.com
+REALITY_PRIVATE_KEY=<private-key>
+REALITY_PUBLIC_KEY=<public-key>
+REALITY_SHORT_ID=<short-id>
+```
 
-## 🔗 Cloudflare Tunnel 配置
+仓库历史中曾出现过 Tunnel token、UUID 和 Reality 私钥默认值。**这些值应视为已泄露并立即轮换**，仅从当前文件删除并不能从 Git 历史中撤销泄露。
 
-### 添加 Public Hostname
+## 5. Docker 部署
 
-在 Cloudflare Zero Trust → **Networks** → **Tunnels** → 你的隧道 → **Public Hostname**，添加以下域名：
-
-| Hostname | Service | 用途 |
-|----------|---------|------|
-| `link-nvidia.techidaily.com` | `http://localhost:8080` | VMess WS |
-| `vless.link-nvidia.techidaily.com` | `http://localhost:443` | VLESS Reality |
-| `hy2.link-nvidia.techidaily.com` | `http://localhost:8443` | Hysteria2 |
-| `tuic.link-nvidia.techidaily.com` | `http://localhost:9443` | TUIC v5 |
-| `anytls.link-nvidia.techidaily.com` | `http://localhost:9444` | AnyTLS |
-| `sub.link-nvidia.techidaily.com` | `http://localhost:8081` | 订阅服务 |
-
-> **注意**：Railway 分配的公共域名（如 `*.traefics.me`）仅作为隧道上游，无需暴露给用户。
-
----
-
-## 📱 客户端连接配置
-
-### VLESS Reality Vision（推荐）
-
-| 配置项 | 值 |
-|--------|-----|
-| **地址** | `vless.link-nvidia.techidaily.com` |
-| **端口** | `443` |
-| **UUID** | `1b4db7eb-4057-5ddf-91e0-36dec72071f5` |
-| **TLS** | Reality |
-| **SNI** | `www.microsoft.com` |
-| **Public Key** | 订阅自动包含 |
-| **Short ID** | 订阅自动包含 |
-| **Flow** | `xtls-rprx-vision` |
-
-### VMess WebSocket
-
-| 配置项 | 值 |
-|--------|-----|
-| **地址** | `link-nvidia.techidaily.com` |
-| **端口** | `443` |
-| **UUID** | `1b4db7eb-4057-5ddf-91e0-36dec72071f5` |
-| **传输** | WebSocket |
-| **路径** | `/vless` |
-| **TLS** | 开启 |
-
-### Hysteria2
-
-| 配置项 | 值 |
-|--------|-----|
-| **地址** | `hy2.link-nvidia.techidaily.com` |
-| **端口** | `443` |
-| **密码** | `1b4db7eb-4057-5ddf-91e0-36dec72071f5` |
-| **SNI** | `www.bing.com` |
-| **ALPN** | `h3` |
-
-### TUIC v5
-
-| 配置项 | 值 |
-|--------|-----|
-| **地址** | `tuic.link-nvidia.techidaily.com` |
-| **端口** | `443` |
-| **UUID** | `1b4db7eb-4057-5ddf-91e0-36dec72071f5` |
-| **密码** | `1b4db7eb-4057-5ddf-91e0-36dec72071f5` |
-| **ALPN** | `h3` |
-
-### AnyTLS
-
-| 配置项 | 值 |
-|--------|-----|
-| **地址** | `anytls.link-nvidia.techidaily.com` |
-| **端口** | `443` |
-| **密码** | `1b4db7eb-4057-5ddf-91e0-36dec72071f5` |
-
----
-
-## 📡 订阅服务（推荐）
-
-容器内置订阅服务，**自动包含所有节点配置和 Reality 密钥**。
-
-### 订阅地址
-
-| 类型 | 地址 |
-|------|------|
-| **Clash 订阅（推荐）** | `http://sub.link-nvidia.techidaily.com/sub/clash` |
-| **sing-box 订阅** | `http://sub.link-nvidia.techidaily.com/sub/singbox` |
-| **vmess:// 链接** | `http://sub.link-nvidia.techidaily.com/sub/vmess` |
-| **健康检查** | `http://sub.link-nvidia.techidaily.com/health` |
-
-### 使用方法
-
-1. 复制订阅地址
-2. 粘贴到 Clash Meta / v2rayN 等客户端的订阅栏
-3. 客户端会自动更新所有节点配置
-
----
-
-## 🔑 Reality 密钥说明
-
-Reality 密钥已**内置固定值**，重启后保持不变。
-
-| 变量 | 值 |
-|------|-----|
-| `REALITY_PRIVATE_KEY` | `iEN-abAE80W942AqjpS0k6a6UenauvBca45P1QTFLnw` |
-| `REALITY_PUBLIC_KEY` | `wv6JL9uQquOEgd4Y5UOwYRspCsKkaxk3K8ePX1Xno2w` |
-| `REALITY_SHORT_ID` | `3ff4bf41` | 固定值 |
-
-> **注意**：`REALITY_SHORT_ID` 重启后会变化，但不影响客户端使用（已包含在订阅中）。
-
----
-
-## 🌐 WARP 配置说明
-
-当前 WARP 使用**备用配置**，适合尝鲜体验。要达到**最佳性能**，需要配置真实 WARP+ 账号。
-
-### 备用配置（当前）
-
-| 变量 | 值 | 说明 |
-|------|-----|------|
-| `WARP_PRIVATE_KEY` | `wIxszdR2nMdA7a2Ul3XQcniSfSZqdqjPb6w6opvf5AU=` | 占位符 |
-| `WARP_RESERVED` | `[126,246,173]` | 占位符 |
-| `WARP_IPV6` | `fd00::2` | 占位符 |
-
-### 生产配置（可选）
-
-如需真实 WARP 出站：
-
-1. 注册 [Cloudflare WARP+](https://1.1.1.1/)
-2. 获取 WireGuard 私钥和配置
-3. 设置环境变量覆盖默认值：
+生产环境建议固定 commit tag，而不是长期依赖滚动的 `latest`：
 
 ```bash
-WARP_PRIVATE_KEY=你的WireGuard私钥
-WARP_RESERVED=Cloudflare分配的reserved值
-WARP_IPV6=你的WARP IPv6地址
+docker compose pull
+docker compose up -d --force-recreate
+docker compose ps
+docker logs --tail=200 link-nvidia
 ```
 
-### WARP 端口
+主机/云防火墙必须允许：
 
-WARP 使用 WireGuard 协议，**不需要开放额外端口**。WireGuard 通过 UDP 连接到 `162.159.192.200:2408`。
+| Port | Protocol | Service |
+|---:|---|---|
+| 443 | TCP | VLESS Reality |
+| 8443 | UDP | Hysteria2 |
+| 9443 | UDP | TUIC v5 |
+| 9444 | TCP | AnyTLS |
 
----
+8080/8081 在 Compose 中只绑定 `127.0.0.1`，避免绕过 Tunnel 暴露 HTTP origin。
 
-## 🆘 故障排查
+## 6. 验证顺序
 
-### 容器启动失败
-
-查看 Railway 部署日志：
-```
-Railway Dashboard → 你的服务 → Deployments → 点击失败的部署 → 查看日志
-```
-
-### 客户端连接失败
-
-1. 确认 Cloudflare Tunnel 状态为 **Active**
-2. 确认 Public Hostname 配置正确
-3. 检查客户端 UUID 是否正确
-4. 尝试更新订阅
-
-### 订阅无法访问
+先验证容器内部：
 
 ```bash
-# 测试订阅端点
-curl http://sub.link-nvidia.techidaily.com/health
+docker exec link-nvidia wget -qO- http://127.0.0.1:8081/health
+docker exec link-nvidia cat /tmp/cloudflared.log
+docker exec link-nvidia cat /tmp/sing-box.log
+docker exec link-nvidia cat /tmp/subscriptiond.log
 ```
 
----
+再验证 Tunnel：
 
-## 📋 快速检查清单
-
-- [ ] Railway 部署状态为 **Healthy**
-- [ ] Railway 端口已开放（443, 8443, 9443, 9444, 8081）
-- [ ] Cloudflare Tunnel 状态为 **Active**
-- [ ] Cloudflare 已添加 6 个 Public Hostname
-- [ ] 客户端订阅测试成功
-- [ ] 客户端连接测试成功
-
----
-
-## 🔄 版本更新
-
-发布新版本：
 ```bash
-# 1. 修改代码
-git add . && git commit -m "更新说明"
-
-# 2. 打标签
-git tag v1.1.0
-
-# 3. 推送
-git push && git push --tags
+curl -fsS https://sub.link-nvidia.techidaily.com/health
 ```
 
-GitHub Actions 会自动构建并推送新镜像（包含 `latest`、语义化版本、以及 7 位 commit 短码 tag）。
+最后从另一台公网机器/手机网络验证直连端口。TCP 与 UDP 必须分开测；浏览器访问 HY2/TUIC/Reality 域名不是有效健康检查。
 
----
+## 7. 客户端入口
 
-## 📞 支持
+| Protocol | Address | Port | Path/transport |
+|---|---|---:|---|
+| VMess WS | `link-nvidia.techidaily.com` | 443 | WSS `/vless` |
+| VLESS Reality | `DIRECT_DOMAIN` | 443/TCP | Reality Vision |
+| Hysteria2 | `DIRECT_DOMAIN` | 8443/UDP | QUIC |
+| TUIC v5 | `DIRECT_DOMAIN` | 9443/UDP | QUIC |
+| AnyTLS | `DIRECT_DOMAIN` | 9444/TCP | TLS |
+| Subscription | `sub.link-nvidia.techidaily.com` | 443 | HTTPS |
 
-- [项目地址](https://github.com/ClawCopilot/link-nvidia)
+订阅端点：
+
+```text
+https://sub.link-nvidia.techidaily.com/sub/clash
+https://sub.link-nvidia.techidaily.com/sub/vmess
+https://sub.link-nvidia.techidaily.com/health
+```
+
+## 8. 进程监督
+
+`entrypoint.sh` 将 sing-box、cloudflared、subscriptiond 都视为关键进程。任一进程退出，PID 1 会退出并让 Docker 的 restart policy 重启容器，避免 cloudflared 已死但容器仍显示 Running/Healthy 的假在线状态。
+
+## 9. 证书说明
+
+Reality 使用 Reality key pair。HY2/TUIC/AnyTLS 当前使用容器生成的自签证书，因此客户端配置需要允许该证书；生产环境更推荐挂载与 `DIRECT_DOMAIN` 匹配的可信证书，并相应调整启动脚本，避免 `skip-cert-verify`。
