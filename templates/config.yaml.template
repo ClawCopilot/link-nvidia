@@ -179,7 +179,10 @@
         "format": "binary",
         "path": "/usr/local/share/sing-box/geosite-geolocation-!cn.srs"
       }
-    ]
+    ],
+    "default_domain_resolver": {
+      "server": "alidns"
+    }
   },
   "dns": {
     "servers": [
