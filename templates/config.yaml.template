@@ -150,16 +150,19 @@
         "action": "sniff"
       },
       {
+        "action": "route",
         "protocol": ["quic", "stun"],
         "outbound": "block"
       },
       {
+        "action": "route",
         "outbound": "warp-out",
         "domain_suffix": ["yg_kkk"]
       },
       {
+        "action": "route",
         "outbound": "direct",
-        "network": "udp,tcp"
+        "network": ["udp", "tcp"]
       }
     ],
     "rule_set": [
@@ -183,15 +186,21 @@
         "tag": "google",
         "detour": "direct",
         "type": "https",
-        "server": "dns.google",
-        "path": "/dns-query"
+        "server": "8.8.8.8",
+        "path": "/dns-query",
+        "tls": {
+          "server_name": "dns.google"
+        }
       },
       {
         "tag": "alidns",
         "detour": "direct",
         "type": "https",
-        "server": "dns.alidns.com",
-        "path": "/dns-query"
+        "server": "223.5.5.5",
+        "path": "/dns-query",
+        "tls": {
+          "server_name": "dns.alidns.com"
+        }
       },
       {
         "tag": "fakeip",
