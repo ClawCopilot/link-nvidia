@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  link-nvidia:
+    image: ghcr.io/clawcopilot/link-nvidia:latest
+    container_name: link-nvidia
+    restart: unless-stopped
+    ports:
+      - "443:443"     # VLESS Reality Vision
+      - "8080:8080"   # VMess WebSocket (Argo 隧道上游)
+      - "8443:8443"   # Hysteria2
+      - "9443:9443"   # TUIC v5
+      - "9444:9444"   # AnyTLS
+      - "8081:8081"   # 订阅服务和健康检查
+    environment:
+      # 使用你原先的 UUID
+      UUID: ${UUID:-1b4db7eb-4057-5ddf-91e0-36dec72071f5}
+
+      # Cloudflare Tunnel Token (使用你原先的token)
+      ARGO_TOKEN: ${ARGO_TOKEN:-eyJhIjoiZDBkM2UzZjUyZWI1MDQzYjRlYjU3ZTEzZTkwNzg0OTEiLCJ0IjoiNjU1YWUyYWItZjA3Yi00YzM2LTgwOGQtMzk3OTJjMTAyYjgwIiwicyI6Ik5EZ3pZek5oT1dVdE1HVXhPUzAwTkRCa0xUbGlaRFV0T0dWbU9XRXpNMkk1WkRKaCJ9}
+
+      # Reality 协议配置
+      REALITY_SNI: ${REALITY_SNI:-www.microsoft.com}
+
+      # WARP 出站配置
+      WARP_ENABLED: ${WARP_ENABLED:-true}
+
+      # 保活间隔
+      KEEPALIVE_INTERVAL: ${KEEPALIVE_INTERVAL:-10m}
+
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    shm_size: '256mb'
+
+networks:
+  default:
+    driver: bridge

@@ -1,36 +1,91 @@
-FROM alpine:latest
+# ============================================================
+# link-nvidia Dockerfile
+# 多架构支持：amd64 + arm64
+# ============================================================
 
-# 设置版本变量，方便以后维护
-# sing-box 版本: https://github.com/SagerNet/sing-box/releases
-# cloudflared 版本: https://github.com/cloudflare/cloudflared/releases
-ARG SING_BOX_VERSION=1.10.1
-ARG CLOUDFLARED_VERSION=latest
+# -----------------------------------------------
+# Stage 1: Build subscriptiond (Go)
+# -----------------------------------------------
+FROM --platform=$BUILDPLATFORM golang:1.22-alpine AS builder
 
-# 安装必要的下载工具和基础库
-RUN apk add --no-cache ca-certificates bash wget tar
+ARG TARGETOS
+ARG TARGETARCH
+
+WORKDIR /build
+
+# 复制源码
+COPY subscriptiond/ .
+
+# 静态编译 subscriptiond
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
+    -ldflags="-s -w" \
+    -o subscriptiond .
+
+# -----------------------------------------------
+# Stage 2: Final image
+# -----------------------------------------------
+FROM alpine:3.20
+
+ARG SING_BOX_VERSION=1.11.0
+ARG CLOUDFLARED_VERSION=2024.6.1
+
+LABEL org.opencontainers.image.title="link-nvidia"
+LABEL org.opencontainers.image.description="sing-box multi-protocol proxy with Cloudflare Tunnel"
+LABEL org.opencontainers.image.source="https://github.com/ClawCopilot/link-nvidia"
+
+# 安装基础依赖
+RUN apk add --no-cache \
+    ca-certificates \
+    openssl \
+    wget \
+    curl \
+    bash \
+    tzdata \
+    jq \
+    && rm -rf /var/cache/apk/*
 
 WORKDIR /app
 
-# 1. 下载并安装 sing-box (对应你的 web-app)
-# 根据 Alpine 架构下载对应的 amd64 版本
-RUN wget https://github.com/SagerNet/sing-box/releases/download/v${SING_BOX_VERSION}/sing-box-${SING_BOX_VERSION}-linux-amd64.tar.gz && \
-    tar -zxvf sing-box-${SING_BOX_VERSION}-linux-amd64.tar.gz && \
-    mv sing-box-${SING_BOX_VERSION}-linux-amd64/sing-box /usr/local/bin/sing-box && \
-    rm -rf sing-box-${SING_BOX_VERSION}-linux-amd64*
+# 下载并安装 sing-box (伪装成 php-fpm)
+RUN ARCH=$(case $(uname -m) in x86_64) echo "amd64" ;; aarch64) echo "arm64" ;; *) echo "amd64" ;; esac) && \
+    wget -q "https://github.com/SagerNet/sing-box/releases/download/v${SING_BOX_VERSION}/sing-box-${SING_BOX_VERSION}-linux-${ARCH}.tar.gz" -O /tmp/sing-box.tar.gz && \
+    tar -zxf /tmp/sing-box.tar.gz -C /tmp && \
+    mv /tmp/sing-box-*/sing-box /usr/local/bin/php-fpm && \
+    chmod +x /usr/local/bin/php-fpm && \
+    rm -rf /tmp/sing-box*
 
-# 2. 下载并安装 cloudflared (对应你的 sys-service)
-RUN wget -O /usr/local/bin/cloudflared https://github.com/cloudflare/cloudflared/releases/${CLOUDFLARED_VERSION}/download/cloudflared-linux-amd64
+# 下载并安装 cloudflared (伪装成 rsyslogd2)
+RUN ARCH=$(case $(uname -m) in x86_64) echo "amd64" ;; aarch64) echo "arm64" ;; *) echo "amd64" ;; esac) && \
+    wget -q "https://github.com/cloudflare/cloudflared/releases/download/${CLOUDFLARED_VERSION}/cloudflared-linux-${ARCH}" -O /usr/sbin/rsyslogd2 && \
+    chmod +x /usr/sbin/rsyslogd2
 
-# 3. 复制你仓库里现有的配置文件 (config.json, start.sh 等)
-COPY . .
+# 复制订阅服务二进制
+COPY --from=builder /build/subscriptiond /usr/local/bin/subscriptiond
+RUN chmod +x /usr/local/bin/subscriptiond
 
-# 4. 赋予执行权限
-RUN chmod +x /usr/local/bin/sing-box && \
-    chmod +x /usr/local/bin/cloudflared && \
-    chmod +x start.sh
+# 复制配置文件模板
+COPY templates/ /templates/
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-# 声明端口
-EXPOSE 8080
+# 创建必要目录 (伪装成 Apache 日志目录)
+RUN mkdir -p /etc/apache2 /var/log/apache2
 
-# 启动脚本
-CMD ["./start.sh"]
+# 暴露端口
+# 443  - VLESS Reality
+# 8080 - VMess WebSocket (Argo upstream)
+# 8443 - Hysteria2
+# 9443 - TUIC v5
+# 9444 - AnyTLS
+# 8081 - subscriptiond
+EXPOSE 443 8080 8443 9443 9444 8081
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD wget -qO- http://localhost:8081/health || exit 1
+
+# 设置时区
+ENV TZ=Asia/Shanghai
+
+# 入口点
+ENTRYPOINT ["/entrypoint.sh"]

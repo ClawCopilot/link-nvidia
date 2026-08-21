@@ -2,85 +2,234 @@
 本项目采用 CC BY-NC 4.0 协议进行分发。
 无论你是直接 Fork、修改源码还是重新分发，都必须保留原作者的署名，且严禁用于任何商业牟利行为。一经发现侵权，作者保留追究责任的权利。（支持YouTube等视频平台分享，但必须提供原项目地址）
 
-# Railway 平台部署 视频教程  [点击查看](https://youtu.be/ODVbTw0wfak?si=8fWoJUCGqWFw-lxS)
+# 🚀 link-nvidia — sing-box 多协议代理 Docker 镜像
 
-# 🚀 科学上网节点极速部署指南 (Sing-box + Cloudflare Tunnel)
+[![Build & Push](https://github.com/ClawCopilot/link-nvidia/actions/workflows/main.yml/badge.svg)](https://github.com/ClawCopilot/link-nvidia/actions)
+[![Docker Image](https://img.shields.io/docker/image-size/clawcopilot/link-nvidia/latest)](https://github.com/ClawCopilot/link-nvidia/pkgs/container/link-nvidia)
+![Multi-Arch](https://img.shields.io/badge/arch-amd64%20%7C%20arm64-blue)
 
-本项目提供了一个基于 Docker 容器的轻量级、高隐匿性科学上网节点部署方案。通过集成 `sing-box` 和 `cloudflared`，你可以轻松地在各类云平台（如 Koyeb、Render 等）或个人 VPS 上一键构建安全隧道。
+本项目提供基于 **sing-box 1.11** + **Cloudflare Tunnel** 的多协议代理 Docker 镜像，支持 5 种主流代理协议，一条命令即可部署。
 
 ## ✨ 核心特性
 
-* **轻量高效**：基于 Alpine Linux 和 Docker 构建，占用资源极低。
-* **高隐匿性**：利用 Cloudflare Tunnel 穿透内网，隐藏真实服务器 IP，有效防封锁。
-* **协议先进**：采用目前最强大的核心 `sing-box`，默认配置 VLESS 协议。
-* **自动化构建**：已配置 GitHub Actions，修改代码后自动打包 Docker 镜像到 Github Packages (`ghcr.io`)。
+| 特性 | 说明 |
+|------|------|
+| **5 种协议** | VLESS Reality Vision、VMess WebSocket、Hysteria2、TUIC v5、AnyTLS |
+| **抗检测最强** | Reality (XTLS) + uTLS 指纹，伪装成 Chrome/Firefox 浏览器流量 |
+| **WARP 出站** | 内置 WireGuard WARP，解锁 ChatGPT/Netflix/流媒体 |
+| **Cloudflare Tunnel** | 隐藏真实服务器 IP，443 端口标准 HTTPS 流量 |
+| **订阅服务** | 内置 HTTP 服务，支持 sing-box JSON / Clash YAML / vmess:// |
+| **进程管理** | nohup 后台运行，自动重启 |
+| **多架构** | amd64 + arm64 原生支持 |
+| **健康检查** | 内置 `/health` 端点，Docker HEALTHCHECK 就绪 |
 
-* **开箱即用**：UUID 和 ARGO_TOKEN 已内置，拉取镜像即可直接运行，无需额外配置。
+## 📦 支持的协议
 
-> 📦 **Docker 镜像地址**：`ghcr.io/clawcopilot/link-nvidia:latest`
+| 协议 | 端口 | 传输 | TLS | 适用场景 |
+|------|------|------|-----|----------|
+| **VLESS Reality Vision** | 443 | XTLS | Reality | 最强抗检测，推荐 |
+| **VMess WebSocket** | 8080 | WebSocket | 可选 | 通用场景，兼容性好 |
+| **Hysteria2** | 8443 | QUIC | h3 | 高带宽需求 |
+| **TUIC v5** | 9443 | HTTP/3 | h3 | 低延迟场景 |
+| **AnyTLS** | 9444 | TLS | 证书 | 深度伪装 |
 
-## 📦 项目结构
+## 🚀 快速开始
 
-* `Dockerfile`: 自动拉取并构建所需组件的 Docker 镜像配置。
-* `config.json`: `sing-box` 的核心路由与协议配置文件。
-* `start.sh`: 容器启动脚本，负责同时运行 sing-box 和 cloudflared 双进程。
-
----
-
-## 🛠️ 部署教程
-
-本项目支持在任何兼容 Docker 的环境中部署。以下以常见云 PaaS 平台为例。
-
-### 准备工作
-
-1.  **Cloudflare Tunnel**:
-    * 登录 [Cloudflare Zero Trust](https://dash.teams.cloudflare.com/) 面板。
-    * 导航至 **Networks** -> **Tunnels**，创建一个新的 Tunnel。
-    * 为该 Tunnel 配置一个 Public Hostname（例如 `proxy.yourdomain.com`），并将服务指向 `http://localhost:8080`。
-
-> ⚠️ **注意**：UUID 和 ARGO_TOKEN 已内置在镜像中，无需手动设置环境变量。
-
-### 开始部署
-
-直接拉取镜像并运行：
+### 最简部署
 
 ```bash
-docker run -d --name link-nvidia ghcr.io/clawcopilot/link-nvidia:latest
+docker run -d \
+  --name link-nvidia \
+  -p 443:443 \
+  -p 8080:8080 \
+  -p 8443:8443 \
+  -p 9443:9443 \
+  -p 8081:8081 \
+  -e UUID=your-uuid-here \
+  -e ARGO_TOKEN=your-argo-token-here \
+  ghcr.io/clawcopilot/link-nvidia:latest
 ```
 
-或在部署平台（如 Koyeb、Render 等）创建新应用时，使用镜像地址 `ghcr.io/clawcopilot/link-nvidia:latest`，无需设置任何环境变量。
+### docker-compose 部署
 
-*(注：部署端口默认为 `8080`，无需修改)*
+```yaml
+version: '3.8'
+services:
+  link-nvidia:
+    image: ghcr.io/clawcopilot/link-nvidia:latest
+    container_name: link-nvidia
+    restart: unless-stopped
+    ports:
+      - "443:443"     # VLESS Reality
+      - "8080:8080"   # VMess WS
+      - "8443:8443"   # Hysteria2
+      - "9443:9443"   # TUIC v5
+      - "9444:9444"   # AnyTLS
+      - "8081:8081"   # 订阅服务
+    environment:
+      # 必填：你的 UUID
+      UUID: your-uuid-here
+      # Cloudflare Tunnel Token (可选，不填则用临时隧道)
+      ARGO_TOKEN: your-argo-token-here
+      # Reality SNI 目标
+      REALITY_SNI: www.microsoft.com
+      # 是否启用 WARP (默认 true)
+      WARP_ENABLED: "true"
+    volumes:
+      # 可选：持久化 Reality 密钥和 WARP 配置
+      - ./data:/var/log/apache2
+```
 
-### 客户端连接
+## 🔧 环境变量
 
-部署成功后，在你的代理客户端（如 v2rayN, Clash 等）中添加如下节点信息：
+| 变量 | 必填 | 默认值 | 说明 |
+|------|------|--------|------|
+| `UUID` | ❌ | `1b4db7eb-4057-5ddf-91e0-36dec72071f5` | 主 UUID，所有协议共用 |
+| `ARGO_TOKEN` | ❌ | 使用内置token | Cloudflare Tunnel Token |
+| `ARGO_DOMAIN` | ❌ | 自动获取 | 固定 Argo 域名 |
+| `REALITY_SNI` | ❌ | `www.microsoft.com` | Reality 握手目标域名 |
+| `REALITY_PUBLIC_KEY` | ❌ | 自动生成 | Reality 公钥 |
+| `REALITY_PRIVATE_KEY` | ❌ | 自动生成 | Reality 私钥 |
+| `REALITY_SHORT_ID` | ❌ | 随机 8 字符 | Reality 短 ID |
+| `WARP_ENABLED` | ❌ | `true` | 是否启用 WARP 出站 |
+| `WARP_PRIVATE_KEY` | ❌ | 备用配置 | WARP 私钥 |
+| `WARP_RESERVED` | ❌ | `[126,246,173]` | WARP reserved bytes |
+| `SING_BOX_VERSION` | ❌ | `1.11.0` | sing-box 版本 |
+| `CLOUDFLARED_VERSION` | ❌ | `2024.6.1` | cloudflared 版本 |
+| `KEEPALIVE_INTERVAL` | ❌ | `10m` | 保活间隔 |
 
-* **地址 (Address)**: 你在 Cloudflare 设置的 Public Hostname (例如 `proxy.yourdomain.com`)
-* **端口 (Port)**: `443`
-* **用户 ID (UUID)**: `1b4db7eb-4057-5ddf-91e0-36dec72071f5`
-* **传输协议 (Network)**: `ws` (WebSocket)
-* **伪装域名 (SNI)**: 你的 Public Hostname
-* **底层安全 (TLS)**: 开启 (`tls`)
+## 📡 订阅端点
 
-快捷分享链接 (URI 格式) 示例
+容器内置订阅服务，自动包含所有协议配置和 Reality 密钥，**无需手动获取 Public Key**。
 
-如果你熟悉直接拼接链接，它大概长这个样子（把中括号里的内容替换成你的真实信息）：
-vless://你的UUID@你的Tunnel域名（或者优选域名）:443?encryption=none&security=tls&sni=你的Tunnel域名&insecure=0&allowInsecure=0&type=ws&host=你的Tunnel域名&path=%2Fvless#Railway-Singbox
+| 端点 | 说明 |
+|------|------|
+| `GET /sub/singbox` | sing-box JSON 配置 (base64 编码) |
+| `GET /sub/clash` | Clash YAML 格式配置（推荐，自动包含 Reality 密钥） |
+| `GET /sub/vmess` | vmess:// 分享链接 |
+| `GET /health` | 健康检查 (返回 200 OK) |
+| `GET /alive` | 触发 Argo 隧道保活 |
 
-如果速度太慢在 地址 (Address) 可换成优选域名 [点击获取优选域名](https://kjgx668.blogspot.com/2023/08/cloudflare-ip-cloudflare-cf.html)
+**订阅 URL 示例**：
+
+```
+# Clash Meta 客户端（推荐）
+http://your-server:8081/sub/clash
+
+# v2rayN / sing-box 客户端
+http://your-server:8081/sub/singbox
+```
+
+## 🔐 客户端连接示例
+
+> 💡 **推荐使用订阅方式**：直接导入 `http://your-server:8081/sub/clash`，自动包含所有配置和密钥。
+
+### VLESS Reality Vision (推荐)
+
+```
+地址: your-domain.com
+端口: 443
+UUID: 1b4db7eb-4057-5ddf-91e0-36dec72071f5
+传输: (空)
+安全: TLS
+SNI: www.microsoft.com
+Reality: 启用
+Public Key: (订阅自动包含)
+Short ID: (订阅自动包含)
+Flow: xtls-rprx-vision
+```
+
+### VMess WebSocket
+
+```
+地址: your-domain.com
+端口: 8080
+UUID: 1b4db7eb-4057-5ddf-91e0-36dec72071f5
+传输: WebSocket
+路径: /vless
+TLS: 关闭
+```
+
+### Hysteria2
+
+```
+地址: your-domain.com
+端口: 8443
+密码: 1b4db7eb-4057-5ddf-91e0-36dec72071f5
+SNI: www.bing.com
+ALPN: h3
+```
+
+### TUIC v5
+
+```
+地址: your-domain.com
+端口: 9443
+UUID: 1b4db7eb-4057-5ddf-91e0-36dec72071f5
+密码: 1b4db7eb-4057-5ddf-91e0-36dec72071f5
+ALPN: h3
+```
+
+### AnyTLS
+
+```
+地址: your-domain.com
+端口: 9444
+密码: 1b4db7eb-4057-5ddf-91e0-36dec72071f5
+```
+
+## 🏗️ 项目结构
+
+```
+link-nvidia/
+├── Dockerfile                          # 多架构 Docker 构建
+├── entrypoint.sh                       # 容器启动脚本
+├── templates/
+│   └── config.yaml.template            # sing-box 配置模板
+├── subscriptiond/
+│   ├── main.go                         # Go 订阅服务
+│   └── go.mod                          # Go 模块
+├── docker-compose.yml                  # Docker Compose 部署配置
+├── DEPLOY.md                           # Railway 部署指南
+└── .github/workflows/
+    └── main.yml                        # CI/CD 多架构构建
+```
+
+## 🐛 故障排查
+
+### 容器启动失败
+
+```bash
+# 查看日志
+docker logs link-nvidia
+
+# 进入容器排查
+docker exec -it link-nvidia sh
+```
+
+### Reality 密钥获取
+
+```bash
+# 查看公钥
+cat /var/log/apache2/reality_public_key
+
+# 查看私钥
+cat /var/log/apache2/reality_private_key
+```
+
+### 订阅无法访问
+
+```bash
+# 检查 subscriptiond 是否运行
+curl http://localhost:8081/health
+```
+
+## 📜 License
+
+本项目采用 **CC BY-NC 4.0** 协议分发。
+
+> ⚠️ 免责声明：本项目仅供学习和交流网络协议技术，请在遵守当地法律法规的前提下使用。
 
 ---
 
-## 进阶玩法：解锁流媒体与降低风控
-
-如果你遇到节点 IP 风控过高或无法访问 ChatGPT/Netflix 的情况，可以通过修改 `config.json` 加入 Cloudflare WARP 出站。
-
-具体方法：使用 WGCF 提取 WARP 的 `PrivateKey` 和 `Address` (IPv4)，将其填入 `config.json` 的 `outbounds` -> `warp` 标签下，系统即可自动将流媒体流量分流至纯净的 WARP 节点。详细教程可参考 [相关配置指南](#)。
-
----
-> **Disclaimer**: 本项目仅供学习和交流网络协议之用，请在遵守当地法律法规的前提下使用。
->
-> ⚠️ 严正声明 (License & Copyright)
-本项目采用 CC BY-NC 4.0 协议进行分发。
-无论你是直接 Fork、修改源码还是重新分发，都必须保留原作者的署名，且严禁用于任何商业牟利行为。一经发现侵权，作者保留追究责任的权利。
+> **进阶玩法**：如果需要更高级的路由分流、流量统计、多用户管理等功能，可以基于本镜像进一步扩展。

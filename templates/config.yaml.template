@@ -1,0 +1,202 @@
+{
+  "log": {
+    "disabled": false,
+    "level": "info",
+    "timestamp": true
+  },
+  "inbounds": [
+    {
+      "type": "vless",
+      "tag": "vless-in",
+      "listen": "::",
+      "listen_port": 443,
+      "users": [
+        {
+          "uuid": "${UUID}",
+          "flow": "xtls-rprx-vision"
+        }
+      ],
+      "tls": {
+        "enabled": true,
+        "server_name": "${REALITY_SNI}",
+        "reality": {
+          "enabled": true,
+          "handshake": {
+            "server": "${REALITY_SNI}",
+            "server_port": 443
+          },
+          "private_key": "${REALITY_PRIVATE_KEY}",
+          "short_id": ["${REALITY_SHORT_ID}"]
+        }
+      }
+    },
+    {
+      "type": "vmess",
+      "tag": "vmess-in",
+      "listen": "::",
+      "listen_port": 8080,
+      "users": [
+        {
+          "uuid": "${UUID}",
+          "alterId": 0
+        }
+      ],
+      "transport": {
+        "type": "ws",
+        "path": "/vless",
+        "max_early_data": 2048,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "tls": {
+        "enabled": false,
+        "server_name": "${ARGO_DOMAIN}"
+      }
+    },
+    {
+      "type": "hysteria2",
+      "tag": "hy2-in",
+      "listen": "::",
+      "listen_port": 8443,
+      "users": [
+        {
+          "password": "${UUID}"
+        }
+      ],
+      "ignore_client_bandwidth": false,
+      "tls": {
+        "enabled": true,
+        "alpn": ["h3"],
+        "certificate_path": "/etc/apache2/cert.pem",
+        "key_path": "/etc/apache2/private.key"
+      }
+    },
+    {
+      "type": "tuic",
+      "tag": "tuic-in",
+      "listen": "::",
+      "listen_port": 9443,
+      "users": [
+        {
+          "uuid": "${UUID}",
+          "password": "${UUID}"
+        }
+      ],
+      "congestion_control": "bbr",
+      "tls": {
+        "enabled": true,
+        "alpn": ["h3"],
+        "certificate_path": "/etc/apache2/cert.pem",
+        "key_path": "/etc/apache2/private.key"
+      }
+    },
+    {
+      "type": "anytls",
+      "tag": "anytls-in",
+      "listen": "::",
+      "listen_port": 9444,
+      "users": [
+        {
+          "password": "${UUID}"
+        }
+      ],
+      "padding_scheme": [],
+      "tls": {
+        "enabled": true,
+        "certificate_path": "/etc/apache2/cert.pem",
+        "key_path": "/etc/apache2/private.key"
+      }
+    }
+  ],
+  "endpoints": [
+    {
+      "type": "wireguard",
+      "tag": "warp-out",
+      "address": [
+        "172.16.0.2/32",
+        "${WARP_IPV6}/128"
+      ],
+      "private_key": "${WARP_PRIVATE_KEY}",
+      "peers": [
+        {
+          "address": "162.159.192.200",
+          "port": 2408,
+          "public_key": "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=",
+          "allowed_ips": ["0.0.0.0/0", "::/0"],
+          "reserved": "${WARP_RESERVED}"
+        }
+      ]
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "direct",
+      "tag": "direct"
+    },
+    {
+      "type": "block",
+      "tag": "block"
+    },
+    {
+      "type": "socks",
+      "tag": "socks-out",
+      "server": "127.0.0.1",
+      "server_port": 40000,
+      "version": "5"
+    }
+  ],
+  "route": {
+    "rules": [
+      {
+        "action": "sniff"
+      },
+      {
+        "protocol": ["quic", "stun"],
+        "outbound": "block"
+      },
+      {
+        "outbound": "warp-out",
+        "domain_suffix": ["yg_kkk"]
+      },
+      {
+        "outbound": "direct",
+        "network": "udp,tcp"
+      }
+    ]
+  },
+  "dns": {
+    "servers": [
+      {
+        "tag": "google",
+        "type": "https",
+        "server": "dns.google",
+        "path": "/dns-query"
+      },
+      {
+        "tag": "alidns",
+        "type": "https",
+        "server": "dns.alidns.com",
+        "path": "/dns-query"
+      },
+      {
+        "tag": "fakeip",
+        "type": "fakeip"
+      }
+    ],
+    "rules": [
+      {
+        "geosite": "geolocation-!cn",
+        "server": "google"
+      },
+      {
+        "geosite": "cn",
+        "server": "alidns"
+      }
+    ],
+    "fakeip": {
+      "enabled": true,
+      "inet4_range": "198.18.0.0/15",
+      "inet6_range": "fc00::/18"
+    },
+    "final": "google"
+  }
+}
