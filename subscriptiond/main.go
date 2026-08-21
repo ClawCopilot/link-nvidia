@@ -29,15 +29,23 @@ func init() {
 }
 
 type VMessNode struct {
-	V, PS, Add, Port, ID, AID, Net, Type, Host, Path, TLS string
+	V string `json:"v"`
+	PS string `json:"ps"`
+	Add string `json:"add"`
+	Port string `json:"port"`
+	ID string `json:"id"`
+	AID string `json:"aid"`
+	Net string `json:"net"`
+	Type string `json:"type"`
+	Host string `json:"host"`
+	Path string `json:"path"`
+	TLS string `json:"tls"`
 	Mux int `json:"mux"`
 }
 
 func main() {
 	flag.Parse()
-	if uuid == "" || argoDomain == "" || directDomain == "" {
-		log.Fatal("uuid, argo-domain and direct-domain are required")
-	}
+	if uuid == "" || argoDomain == "" || directDomain == "" { log.Fatal("uuid, argo-domain and direct-domain are required") }
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", healthHandler)
 	mux.HandleFunc("/alive", aliveHandler)
@@ -51,42 +59,25 @@ func main() {
 }
 
 func healthHandler(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK); _, _ = w.Write([]byte("OK")) }
-
 func aliveHandler(w http.ResponseWriter, _ *http.Request) {
 	client := &http.Client{Timeout: 10 * time.Second, Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
 	resp, err := client.Get("https://" + argoDomain)
 	if err != nil { http.Error(w, err.Error(), http.StatusServiceUnavailable); return }
-	defer resp.Body.Close()
-	w.WriteHeader(http.StatusOK)
-	_, _ = fmt.Fprintf(w, "Tunnel reachable (%d)", resp.StatusCode)
+	defer resp.Body.Close(); w.WriteHeader(http.StatusOK); _, _ = fmt.Fprintf(w, "Tunnel reachable (%d)", resp.StatusCode)
 }
-
 func singboxSubHandler(w http.ResponseWriter, _ *http.Request) {
-	data, err := os.ReadFile("/etc/apache2/config.json")
-	if err != nil { http.Error(w, err.Error(), http.StatusInternalServerError); return }
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	_, _ = w.Write([]byte(base64.StdEncoding.EncodeToString(data)))
+	data, err := os.ReadFile("/etc/apache2/config.json"); if err != nil { http.Error(w, err.Error(), 500); return }
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8"); _, _ = w.Write([]byte(base64.StdEncoding.EncodeToString(data)))
 }
-
-func clashSubHandler(w http.ResponseWriter, _ *http.Request) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	_, _ = w.Write([]byte(generateClashConfig()))
-}
-
-func vmessSubHandler(w http.ResponseWriter, _ *http.Request) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	_, _ = w.Write([]byte(strings.Join(generateVmessLinks(), "\n")))
-}
+func clashSubHandler(w http.ResponseWriter, _ *http.Request) { w.Header().Set("Content-Type", "text/plain; charset=utf-8"); _, _ = w.Write([]byte(generateClashConfig())) }
+func vmessSubHandler(w http.ResponseWriter, _ *http.Request) { w.Header().Set("Content-Type", "text/plain; charset=utf-8"); _, _ = w.Write([]byte(strings.Join(generateVmessLinks(), "\n"))) }
 
 func keepaliveWorker() {
-	ticker := time.NewTicker(keepaliveInterval)
-	defer ticker.Stop()
+	ticker := time.NewTicker(keepaliveInterval); defer ticker.Stop()
 	for range ticker.C {
-		client := &http.Client{Timeout: 10 * time.Second}
-		resp, err := client.Get("https://" + argoDomain)
+		resp, err := (&http.Client{Timeout: 10 * time.Second}).Get("https://" + argoDomain)
 		if err != nil { log.Printf("tunnel keepalive failed: %v", err); continue }
-		resp.Body.Close()
-		log.Printf("tunnel keepalive: %d", resp.StatusCode)
+		resp.Body.Close(); log.Printf("tunnel keepalive: %d", resp.StatusCode)
 	}
 }
 
@@ -110,7 +101,6 @@ proxies:
     reality-opts:
       public-key: %s
       short-id: %s
-
   - name: link-nvidia-vmess-ws
     type: vmess
     server: %s
@@ -123,9 +113,7 @@ proxies:
     servername: %s
     ws-opts:
       path: /vless
-      headers:
-        Host: %s
-
+      headers: {Host: %s}
   - name: link-nvidia-hy2
     type: hysteria2
     server: %s
@@ -134,7 +122,6 @@ proxies:
     sni: %s
     alpn: [h3]
     skip-cert-verify: true
-
   - name: link-nvidia-tuic
     type: tuic
     server: %s
@@ -144,7 +131,6 @@ proxies:
     sni: %s
     alpn: [h3]
     skip-cert-verify: true
-
   - name: link-nvidia-anytls
     type: anytls
     server: %s
@@ -152,12 +138,10 @@ proxies:
     password: %s
     sni: %s
     skip-cert-verify: true
-
 proxy-groups:
   - name: proxy
     type: select
     proxies: [link-nvidia-vless-reality, link-nvidia-vmess-ws, link-nvidia-hy2, link-nvidia-tuic, link-nvidia-anytls]
-
 rules:
   - GEOIP,CN,DIRECT
   - MATCH,proxy
