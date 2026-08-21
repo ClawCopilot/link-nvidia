@@ -236,7 +236,7 @@ proxies:
     security: auto
     network: ws
     ws-opts:
-      path: /%s-vm
+      path: /vless
       headers:
         Host: %s
 

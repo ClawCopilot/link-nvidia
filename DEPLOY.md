@@ -1,26 +1,26 @@
-# link-nvidia Railway 平台部署指南
+# link-nvidia Railway + Cloudflare Tunnel 部署指南
 
 ## 📋 概述
 
-Railway 是一个现代化的云平台，支持直接部署 Docker 镜像。本项目针对 Railway 进行了优化配置，开箱即用。
+本项目部署在 **Railway** 平台，使用 **Cloudflare Tunnel** 暴露服务。
 
-**重要**：Railway 会自动生成公共域名，无需额外配置 DNS。
+**架构**：
+```
+客户端 → Cloudflare Edge → Cloudflare Tunnel → Railway 容器
+```
+
+**优势**：真实服务器 IP 被完全隐藏，Cloudflare 提供 TLS 终止和加速。
 
 ---
 
 ## 🚀 Railway 部署步骤
 
-### 第一步：构建并推送镜像到 GitHub Packages
+### 第一步：构建镜像
 
-```bash
-# 1. 克隆/更新代码
-cd link-nvidia
-
-# 2. 本地构建 (可选，Railway 会自动从 GitHub 构建)
-docker build -t ghcr.io/你的用户名/link-nvidia:latest .
-
-# 3. 推送镜像
-docker push ghcr.io/你的用户名/link-nvidia:latest
+GitHub Actions 已自动构建，镜像地址：
+```
+ghcr.io/clawcopilot/link-nvidia:latest
+ghcr.io/clawcopilot/link-nvidia:v1.0.0
 ```
 
 ### 第二步：在 Railway 创建项目
@@ -28,67 +28,61 @@ docker push ghcr.io/你的用户名/link-nvidia:latest
 1. 登录 [Railway](https://railway.app)
 2. 点击 **New Project** → **Deploy from GitHub repo**
 3. 选择 `link-nvidia` 仓库
-4. 或点击 **New Project** → **Empty Project**，然后手动添加镜像
 
 ### 第三步：配置环境变量（可选）
 
-ARGO_TOKEN 和 UUID 已内置默认值，无需配置。
+UUID 和 ARGO_TOKEN 已内置默认值，**无需配置即可运行**。
 
 如有需要，可在 Railway Dashboard → Variables 中覆盖：
 
 | 变量名 | 默认值 | 说明 |
 |--------|--------|------|
 | `UUID` | `1b4db7eb-4057-5ddf-91e0-36dec72071f5` | 你的 UUID |
-| `ARGO_TOKEN` | （内置） | Cloudflare Tunnel Token（已内置，无需配置） |
+| `ARGO_TOKEN` | （内置） | Cloudflare Tunnel Token |
 | `REALITY_SNI` | `www.microsoft.com` | Reality SNI |
 
-### 第四步：配置持久化存储
+### 第四步：部署
 
-Railway 提供持久化磁盘（Volumes）：
+1. Railway 自动从 GitHub 构建
+2. 等待部署完成
+3. 记录 Railway 分配的公共域名（备用）
 
-1. 在 Railway Dashboard，进入 **Volumes**
-2. 点击 **Create Volume**
-3. 命名为 `sing-box-data`
-4. 在服务设置中，挂载到 `/var/log/apache2`
+### 第五步：开放端口
 
-或者直接添加环境变量指定挂载路径。
+在 Railway Dashboard → 你的服务 → **Settings** → **Networking**，点击 **Create Public Port**：
 
-### 第五步：部署
+| 端口 | 用途 |
+|------|------|
+| `443` | VLESS Reality |
+| `8443` | Hysteria2 |
+| `9443` | TUIC v5 |
+| `9444` | AnyTLS |
+| `8081` | 订阅服务 |
 
-1. Railway 会自动检测 Dockerfile 并构建
-2. 等待构建完成（通常 2-5 分钟）
-3. 部署完成后，Railway 会提供公共域名
+> **注意**：`8080` 不需要开放，VMess WS 通过 Cloudflare Tunnel 访问。
 
 ---
 
-## 🔗 Railway 公共域名
+## 🔗 Cloudflare Tunnel 配置
 
-Railway 会为每个服务分配一个随机子域名，格式如：
-```
-xyz123abc-12345678901234-up-0-0-xxxxx-xxxxx-xxxxx.traefics.me
-```
+### 添加 Public Hostname
 
-**在 Cloudflare Tunnel 中配置**：
+在 Cloudflare Zero Trust → **Networks** → **Tunnels** → 你的隧道 → **Public Hostname**，添加以下域名：
 
-在 Cloudflare Zero Trust → Networks → Tunnels → 你的隧道 → Public Hostname，添加以下配置：
-
-| Hostname | Service | 说明 |
+| Hostname | Service | 用途 |
 |----------|---------|------|
-| `proxy.link-nvidia.techidaily.com` | `http:// Railway域名:8080` | VMess WS + 订阅服务 |
-| `vless.link-nvidia.techidaily.com` | `http:// Railway域名:443` | VLESS Reality |
-| `hy2.link-nvidia.techidaily.com` | `http:// Railway域名:8443` | Hysteria2 |
-| `tuic.link-nvidia.techidaily.com` | `http:// Railway域名:9443` | TUIC v5 |
-| `anytls.link-nvidia.techidaily.com` | `http:// Railway域名:9444` | AnyTLS |
+| `link-nvidia.techidaily.com` | `http://localhost:8080` | VMess WS |
+| `vless.link-nvidia.techidaily.com` | `http://localhost:443` | VLESS Reality |
+| `hy2.link-nvidia.techidaily.com` | `http://localhost:8443` | Hysteria2 |
+| `tuic.link-nvidia.techidaily.com` | `http://localhost:9443` | TUIC v5 |
+| `anytls.link-nvidia.techidaily.com` | `http://localhost:9444` | AnyTLS |
+| `sub.link-nvidia.techidaily.com` | `http://localhost:8081` | 订阅服务 |
 
-**注意**：Railway 的公共域名每次重启会变，需要在 Railway 的 **Settings → Networking** 中配置**自定义域名绑定**，这样 Railway 域名变化时自动更新。
+> **注意**：Railway 分配的公共域名（如 `*.traefics.me`）仅作为隧道上游，无需暴露给用户。
 
 ---
 
 ## 📱 客户端连接配置
-
-### 域名配置（基于 Cloudflare Tunnel）
-
-在 Cloudflare Tunnel 中配置好 Public Hostname 后，使用以下域名连接：
 
 ### VLESS Reality Vision（推荐）
 
@@ -107,7 +101,7 @@ xyz123abc-12345678901234-up-0-0-xxxxx-xxxxx-xxxxx.traefics.me
 
 | 配置项 | 值 |
 |--------|-----|
-| **地址** | `proxy.link-nvidia.techidaily.com` |
+| **地址** | `link-nvidia.techidaily.com` |
 | **端口** | `443` |
 | **UUID** | `1b4db7eb-4057-5ddf-91e0-36dec72071f5` |
 | **传输** | WebSocket |
@@ -146,181 +140,125 @@ xyz123abc-12345678901234-up-0-0-xxxxx-xxxxx-xxxxx.traefics.me
 
 ## 📡 订阅服务（推荐）
 
-容器内置订阅服务，自动包含所有协议配置和 Reality 密钥，**无需手动获取 Public Key**。
+容器内置订阅服务，**自动包含所有节点配置和 Reality 密钥**。
 
-### 订阅端点
+### 订阅地址
 
-| 端点 | 说明 |
+| 类型 | 地址 |
 |------|------|
-| `GET /sub/clash` | Clash Meta 配置（推荐） |
-| `GET /sub/singbox` | sing-box JSON 配置 |
-| `GET /sub/vmess` | vmess:// 链接 |
-| `GET /health` | 健康检查 |
+| **Clash 订阅（推荐）** | `http://sub.link-nvidia.techidaily.com/sub/clash` |
+| **sing-box 订阅** | `http://sub.link-nvidia.techidaily.com/sub/singbox` |
+| **vmess:// 链接** | `http://sub.link-nvidia.techidaily.com/sub/vmess` |
+| **健康检查** | `http://sub.link-nvidia.techidaily.com/health` |
 
 ### 使用方法
 
-1. **Clash Meta 客户端**（推荐）：
-   - 订阅地址：`http://服务器:8081/sub/clash`
-   - 自动包含 Reality 密钥
-
-2. **v2rayN / sing-box 客户端**：
-   - 订阅地址：`http://服务器:8081/sub/singbox`
-
-### Railway 订阅配置
-
-Railway 部署后，确保端口已开放：
-
-1. 进入 **Settings** → **Networking**
-2. 点击 **Create Public Port**
-3. 添加端口：`8081`
-4. 订阅地址：`http://proxy.link-nvidia.techidaily.com/sub/clash`
+1. 复制订阅地址
+2. 粘贴到 Clash Meta / v2rayN 等客户端的订阅栏
+3. 客户端会自动更新所有节点配置
 
 ---
 
-## 🔑 获取 Reality 密钥（如需手动配置）
+## 🔑 Reality 密钥说明
 
-如果客户端不支持订阅，或需要手动配置节点：
+Reality 密钥已**内置固定值**，重启后保持不变。
 
-### Railway 终端
+| 变量 | 值 |
+|------|-----|
+| `REALITY_PRIVATE_KEY` | `iEN-abAE80W942AqjpS0k6a6UenauvBca45P1QTFLnw` |
+| `REALITY_PUBLIC_KEY` | `wv6JL9uQquOEgd4Y5UOwYRspCsKkaxk3K8ePX1Xno2w` |
+| `REALITY_SHORT_ID` | `3ff4bf41` | 固定值 |
+
+> **注意**：`REALITY_SHORT_ID` 重启后会变化，但不影响客户端使用（已包含在订阅中）。
+
+---
+
+## 🌐 WARP 配置说明
+
+当前 WARP 使用**备用配置**，适合尝鲜体验。要达到**最佳性能**，需要配置真实 WARP+ 账号。
+
+### 备用配置（当前）
+
+| 变量 | 值 | 说明 |
+|------|-----|------|
+| `WARP_PRIVATE_KEY` | `wIxszdR2nMdA7a2Ul3XQcniSfSZqdqjPb6w6opvf5AU=` | 占位符 |
+| `WARP_RESERVED` | `[126,246,173]` | 占位符 |
+| `WARP_IPV6` | `fd00::2` | 占位符 |
+
+### 生产配置（可选）
+
+如需真实 WARP 出站：
+
+1. 注册 [Cloudflare WARP+](https://1.1.1.1/)
+2. 获取 WireGuard 私钥和配置
+3. 设置环境变量覆盖默认值：
 
 ```bash
-cat /var/log/apache2/reality_public_key
-cat /var/log/apache2/reality_short_id
+WARP_PRIVATE_KEY=你的WireGuard私钥
+WARP_RESERVED=Cloudflare分配的reserved值
+WARP_IPV6=你的WARP IPv6地址
 ```
 
-### 本地 Docker
+### WARP 端口
 
-```bash
-docker exec link-nvidia cat /var/log/apache2/reality_public_key
-docker exec link-nvidia cat /var/log/apache2/reality_short_id
-```
+WARP 使用 WireGuard 协议，**不需要开放额外端口**。WireGuard 通过 UDP 连接到 `162.159.192.200:2408`。
 
 ---
 
-## 📊 Railway 端口配置
+## 🆘 故障排查
 
-Railway 的端口映射方式与 Docker 不同：
+### 容器启动失败
 
-| 容器端口 | Railway 暴露 | 说明 |
-|---------|--------------|------|
-| `443` | Railway 自动分配 | VLESS Reality |
-| `8080` | Railway 自动分配 | VMess WS + Argo 上游 |
-| `8443` | Railway 自动分配 | Hysteria2 |
-| `9443` | Railway 自动分配 | TUIC v5 |
-| `9444` | Railway 自动分配 | AnyTLS |
-| `8081` | Railway 自动分配 | 订阅服务 |
-
-Railway 会自动将容器端口映射到公共端口，**无需手动映射**。
-
----
-
-## 🔧 Railway 特定配置
-
-### 使用 Railway 公共域名连接 Argo
-
-Railway 的公共域名本身就可以用于 Argo 隧道：
-
+查看 Railway 部署日志：
 ```
-# 你的 Railway 公共域名作为 Argo 上游
-cloudflared tunnel --url http://localhost:8080
-```
-
-### 固定域名配置
-
-如果你有自定义域名：
-
-1. **Cloudflare 设置**：
-   - CNAME 记录指向 Railway 公共域名
-   - 或在 Argo Tunnel 中配置自定义域名
-
-2. **Railway 设置**：
-   - 在 **Networking** 中添加自定义域
-   - Railway 会自动配置 SSL
-
----
-
-## 🆘 Railway 故障排查
-
-### 部署失败
-
-```bash
-# 查看构建日志
 Railway Dashboard → 你的服务 → Deployments → 点击失败的部署 → 查看日志
 ```
 
-### 服务无法启动
+### 客户端连接失败
+
+1. 确认 Cloudflare Tunnel 状态为 **Active**
+2. 确认 Public Hostname 配置正确
+3. 检查客户端 UUID 是否正确
+4. 尝试更新订阅
+
+### 订阅无法访问
 
 ```bash
-# Railway 终端调试
-Railway Dashboard → 你的服务 → Terminal
-
-# 手动启动测试
-sh /entrypoint.sh
+# 测试订阅端点
+curl http://sub.link-nvidia.techidaily.com/health
 ```
 
-### 端口连接问题
+---
 
-Railway 默认不开放所有端口，需要在 **Networking** 中配置：
+## 📋 快速检查清单
 
-1. 进入服务 **Settings** → **Networking**
-2. 点击 **Create Public Port**
-3. 添加端口：`443`、`8443`、`9443`、`9444`、`8081`
-
-**注意**：`8080` 不需要开放，因为 VMess WS 通过 Argo 隧道访问。
-
-### 持久化数据丢失
-
-Railway 的 Volumes 需要显式配置：
-
-1. 创建 Volume 并命名
-2. 在服务中挂载：`/var/log/apache2` → 你的 Volume
+- [ ] Railway 部署状态为 **Healthy**
+- [ ] Railway 端口已开放（443, 8443, 9443, 9444, 8081）
+- [ ] Cloudflare Tunnel 状态为 **Active**
+- [ ] Cloudflare 已添加 6 个 Public Hostname
+- [ ] 客户端订阅测试成功
+- [ ] 客户端连接测试成功
 
 ---
 
-## 🔒 Railway 安全建议
+## 🔄 版本更新
 
-### 1. 环境变量保密
+发布新版本：
+```bash
+# 1. 修改代码
+git add . && git commit -m "更新说明"
 
-敏感信息（UUID、Argo Token）通过 Railway 环境变量设置，**不要**写在代码里。
+# 2. 打标签
+git tag v1.1.0
 
-### 2. 订阅服务访问控制
+# 3. 推送
+git push && git push --tags
+```
 
-订阅端点 `/sub/*` 建议通过 Cloudflare Access 或 Railway 的自定义域名认证保护。
-
-### 3. 防火墙
-
-Railway 默认有基础防护，但建议：
-- 只开放必要的端口
-- 使用 Cloudflare Tunnel 隐藏真实 IP
-
----
-
-## 📋 Railway 快速检查清单
-
-- [ ] GitHub Packages 镜像已推送
-- [ ] Railway 项目已创建
-- [ ] 环境变量已配置（ARGO_TOKEN 必填）
-- [ ] 持久化 Volume 已挂载（可选，密钥在内存中，重启会变）
-- [ ] 公共端口已开放（443, 8443, 9443, 9444, 8081）
-- [ ] Cloudflare Tunnel 已配置 5 个 Public Hostname
-- [ ] 部署状态为 **Healthy**
-- [ ] 客户端测试连接成功（订阅自动包含 Reality 密钥）
+GitHub Actions 会自动构建并推送新镜像。
 
 ---
 
-## 🔄 Railway 自动部署
+## 📞 支持
 
-Railway 支持 GitHub 集成，实现代码推送后自动部署：
-
-1. 在 Railway 项目中连接 GitHub 仓库
-2. 设置 **GitHub Connection**
-3. 每次 `main` 分支推送后，Railway 会自动重新构建部署
-
----
-
-## 📞 Railway 支持
-
-- [Railway 文档](https://docs.railway.app)
-- [Railway Discord](https://discord.gg/railway)
-
-如遇问题，可先查看 Railway 官方文档或社区。
+- [项目地址](https://github.com/ClawCopilot/link-nvidia)

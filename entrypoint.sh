@@ -13,7 +13,9 @@ DATA_DIR="/var/log/apache2"
 # 默认值 (使用你原先的配置)
 : "${UUID:=1b4db7eb-4057-5ddf-91e0-36dec72071f5}"
 : "${REALITY_SNI:=www.microsoft.com}"
-: "${REALITY_SHORT_ID:=$(openssl rand -hex 4)}"
+: "${REALITY_SHORT_ID:=3ff4bf41}"
+: "${REALITY_PRIVATE_KEY:=iEN-abAE80W942AqjpS0k6a6UenauvBca45P1QTFLnw}"
+: "${REALITY_PUBLIC_KEY:=wv6JL9uQquOEgd4Y5UOwYRspCsKkaxk3K8ePX1Xno2w}"
 : "${VMESS_PORT:=8080}"
 : "${HY2_PORT:=8443}"
 : "${TUIC_PORT:=9443}"
@@ -128,7 +130,6 @@ fi
 echo "[*] 启动 subscriptiond..."
 nohup subscriptiond \
     --uuid "${UUID}" \
-    --config /etc/apache2/config.json \
     --port ${SUBSCRIPTION_PORT} \
     --reality-public-key "${REALITY_PUBLIC_KEY}" \
     --reality-short-id "${REALITY_SHORT_ID}" \
