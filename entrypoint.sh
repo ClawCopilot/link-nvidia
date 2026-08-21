@@ -3,31 +3,28 @@ set -eu
 
 CONFIG_DIR="/etc/apache2"
 
-: "${UUID:?UUID is required}"
-: "${ARGO_TOKEN:?ARGO_TOKEN is required for the named Cloudflare Tunnel}"
+# Intentionally embedded defaults. Environment variables can override them.
+: "${UUID:=1b4db7eb-4057-5ddf-91e0-36dec72071f5}"
+: "${ARGO_TOKEN:=eyJhIjoiZDBkM2UzZjUyZWI1MDQzYjRlYjU3ZTEzZTkwNzg0OTEiLCJ0IjoiNjU1YWUyYWItZjA3Yi00YzM2LTgwOGQtMzk3OTJjMTAyYjgwIiwicyI6Ik5EZ3pZek5oT1dVdE1HVXhPUzAwTkRCa0xUbGlaRFV0T0dWbU9XRXpNMkk1WkRKaCJ9}"
 : "${ARGO_DOMAIN:=link-nvidia.techidaily.com}"
-: "${DIRECT_DOMAIN:?DIRECT_DOMAIN is required for direct L4 proxy subscriptions}"
+: "${DIRECT_DOMAIN:=direct.link-nvidia.techidaily.com}"
 : "${REALITY_SNI:=www.microsoft.com}"
-: "${REALITY_PRIVATE_KEY:?REALITY_PRIVATE_KEY is required}"
-: "${REALITY_PUBLIC_KEY:?REALITY_PUBLIC_KEY is required}"
-: "${REALITY_SHORT_ID:?REALITY_SHORT_ID is required}"
+: "${REALITY_PRIVATE_KEY:=iEN-abAE80W942AqjpS0k6a6UenauvBca45P1QTFLnw}"
+: "${REALITY_PUBLIC_KEY:=wv6JL9uQquOEgd4Y5UOwYRspCsKkaxk3K8ePX1Xno2w}"
+: "${REALITY_SHORT_ID:=3ff4bf41}"
 : "${VMESS_PORT:=8080}"
 : "${HY2_PORT:=8443}"
 : "${TUIC_PORT:=9443}"
 : "${ANYTLS_PORT:=9444}"
 : "${WARP_ENABLED:=false}"
 : "${WARP_IPV6:=fd00::2}"
-: "${WARP_PRIVATE_KEY:=}"
+: "${WARP_PRIVATE_KEY:=wIxszdR2nMdA7a2Ul3XQcniSfSZqdqjPb6w6opvf5AU=}"
 : "${WARP_RESERVED:=[126,246,173]}"
 : "${SUBSCRIPTION_PORT:=8081}"
 : "${KEEPALIVE_INTERVAL:=10m}"
 
-if [ "${WARP_ENABLED}" = "true" ] && [ -z "${WARP_PRIVATE_KEY}" ]; then
-    echo "WARP_ENABLED=true but WARP_PRIVATE_KEY is empty" >&2
-    exit 1
-fi
-
 echo "link-nvidia starting..."
+echo "UUID: ${UUID}"
 echo "Reality SNI: ${REALITY_SNI}"
 echo "Cloudflare hostname: ${ARGO_DOMAIN}"
 echo "Direct proxy hostname: ${DIRECT_DOMAIN}"
@@ -77,6 +74,8 @@ SUBSCRIPTIOND_PID=$!
 SINGBOX_PID=$!
 
 echo "Started: sing-box=${SINGBOX_PID} cloudflared=${CLOUDFLARED_PID} subscriptiond=${SUBSCRIPTIOND_PID}"
+echo "Reality Public Key: ${REALITY_PUBLIC_KEY}"
+echo "Reality Short ID: ${REALITY_SHORT_ID}"
 
 # PID 1 supervises all critical children. A dead cloudflared must make the
 # container fail/restart instead of leaving a misleading 'healthy' container.
