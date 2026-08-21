@@ -167,14 +167,18 @@
     "servers": [
       {
         "tag": "google",
+        "detour": "direct",
         "type": "https",
         "server": "dns.google",
+        "address": "dns.google",
         "path": "/dns-query"
       },
       {
         "tag": "alidns",
+        "detour": "direct",
         "type": "https",
         "server": "dns.alidns.com",
+        "address": "dns.alidns.com",
         "path": "/dns-query"
       },
       {
@@ -193,7 +197,6 @@
       }
     ],
     "fakeip": {
-      "enabled": true,
       "inet4_range": "198.18.0.0/15",
       "inet6_range": "fc00::/18"
     },
