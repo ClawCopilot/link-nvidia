@@ -4,26 +4,36 @@ services:
     container_name: link-nvidia
     restart: unless-stopped
     ports:
-      - "443:443"     # VLESS Reality Vision
-      - "8080:8080"   # VMess WebSocket (Argo 隧道上游)
-      - "8443:8443"   # Hysteria2
-      - "9443:9443"   # TUIC v5
-      - "9444:9444"   # AnyTLS
-      - "8081:8081"   # 订阅服务和健康检查
+      # L4 proxy protocols: publish directly on the host.
+      # Do NOT configure these as Cloudflare Tunnel HTTP origins.
+      - "443:443/tcp"     # VLESS Reality Vision
+      - "8443:8443/udp"   # Hysteria2 / QUIC
+      - "9443:9443/udp"   # TUIC v5 / QUIC
+      - "9444:9444/tcp"   # AnyTLS
+
+      # HTTP-compatible services. These only need host publication when
+      # debugging locally; cloudflared runs in this same container and reaches
+      # them through localhost.
+      - "127.0.0.1:8080:8080/tcp" # VMess WebSocket origin
+      - "127.0.0.1:8081:8081/tcp" # subscription/health origin
+
     environment:
-      # 使用你原先的 UUID
-      UUID: ${UUID:-1b4db7eb-4057-5ddf-91e0-36dec72071f5}
+      UUID: ${UUID:?set UUID in .env or the deployment secret store}
+      ARGO_TOKEN: ${ARGO_TOKEN:?set ARGO_TOKEN in .env or the deployment secret store}
 
-      # Cloudflare Tunnel Token (使用你原先的token)
-      ARGO_TOKEN: ${ARGO_TOKEN:-eyJhIjoiZDBkM2UzZjUyZWI1MDQzYjRlYjU3ZTEzZTkwNzg0OTEiLCJ0IjoiNjU1YWUyYWItZjA3Yi00YzM2LTgwOGQtMzk3OTJjMTAyYjgwIiwicyI6Ik5EZ3pZek5oT1dVdE1HVXhPUzAwTkRCa0xUbGlaRFV0T0dWbU9XRXpNMkk1WkRKaCJ9}
+      # Public hostname served by Cloudflare Tunnel for VMess WS.
+      ARGO_DOMAIN: ${ARGO_DOMAIN:-link-nvidia.techidaily.com}
 
-      # Reality 协议配置
+      # Public DNS name/IP that resolves directly to this Docker host.
+      # Reality/HY2/TUIC/AnyTLS subscriptions use this address, not ARGO_DOMAIN.
+      DIRECT_DOMAIN: ${DIRECT_DOMAIN:?set DIRECT_DOMAIN to the direct server hostname or IP}
+
       REALITY_SNI: ${REALITY_SNI:-www.microsoft.com}
+      REALITY_PRIVATE_KEY: ${REALITY_PRIVATE_KEY:?set REALITY_PRIVATE_KEY in the secret store}
+      REALITY_PUBLIC_KEY: ${REALITY_PUBLIC_KEY:?set REALITY_PUBLIC_KEY in the secret store}
+      REALITY_SHORT_ID: ${REALITY_SHORT_ID:?set REALITY_SHORT_ID in the secret store}
 
-      # WARP 出站配置
       WARP_ENABLED: ${WARP_ENABLED:-false}
-
-      # 保活间隔
       KEEPALIVE_INTERVAL: ${KEEPALIVE_INTERVAL:-10m}
 
     healthcheck:
@@ -31,9 +41,9 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 15s
 
-    shm_size: '256mb'
+    shm_size: "256mb"
 
 networks:
   default:
