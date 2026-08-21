@@ -133,6 +133,7 @@ proxies:
     tls: true
     udp: true
     servername: %s
+    client-fingerprint: chrome
     reality-opts:
       public-key: %s
       short-id: %s
