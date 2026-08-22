@@ -45,8 +45,8 @@ docker run -d \
   -p 8443:8443 \
   -p 9443:9443 \
   -p 8081:8081 \
-  -e LN_CLIENT_ID=your-uuid-here \
-  -e LN_EDGE_TOKEN=your-argo-token-here \
+  -e UUID=your-uuid-here \
+  -e ARGO_TOKEN=your-argo-token-here \
   ghcr.io/clawcopilot/link-nvidia:latest
 ```
 
@@ -66,10 +66,10 @@ services:
       - "9444:9444"   # AnyTLS
       - "8081:8081"   # 订阅服务
     environment:
-      # 必填：你的 LN_CLIENT_ID
-      LN_CLIENT_ID: your-uuid-here
+      # 必填：你的 UUID
+      UUID: your-uuid-here
       # Cloudflare Tunnel Token (可选，不填则用临时隧道)
-      LN_EDGE_TOKEN: your-argo-token-here
+      ARGO_TOKEN: your-argo-token-here
       # Reality SNI 目标
       LN_FRONT_HOST: www.cloudflare.com
       # 是否启用 WARP (默认 false)
@@ -83,9 +83,9 @@ services:
 
 | 变量 | 必填 | 默认值 | 说明 |
 |------|------|--------|------|
-| `LN_CLIENT_ID` | ❌ | `1b4db7eb-4057-5ddf-91e0-36dec72071f5` | 主 LN_CLIENT_ID，所有协议共用 |
-| `LN_EDGE_TOKEN` | ❌ | 使用内置token | Cloudflare Tunnel Token |
-| `LN_WEB_HOST` | ❌ | 自动获取 | 固定 Argo 域名 |
+| `UUID` | ❌ | `1b4db7eb-4057-5ddf-91e0-36dec72071f5` | 主 UUID，所有协议共用 |
+| `ARGO_TOKEN` | ❌ | 使用内置token | Cloudflare Tunnel Token |
+| `ARGO_DOMAIN` | ❌ | 自动获取 | 固定 Argo 域名 |
 | `LN_FRONT_HOST` | ❌ | `www.cloudflare.com` | Reality 握手目标域名 |
 | `LN_CORE_PUBLIC` | ❌ | 自动生成 | Reality 公钥 |
 | `LN_CORE_SECRET` | ❌ | 自动生成 | Reality 私钥 |
@@ -136,7 +136,7 @@ https://sub-link-nvidia.techidaily.com/sub/singbox
 ```
 地址: your-domain.com
 端口: 443
-LN_CLIENT_ID: 1b4db7eb-4057-5ddf-91e0-36dec72071f5
+UUID: 1b4db7eb-4057-5ddf-91e0-36dec72071f5
 传输: (空)
 安全: TLS
 SNI: www.cloudflare.com
@@ -151,7 +151,7 @@ Flow: xtls-rprx-vision
 ```
 地址: your-domain.com
 端口: 8080
-LN_CLIENT_ID: 1b4db7eb-4057-5ddf-91e0-36dec72071f5
+UUID: 1b4db7eb-4057-5ddf-91e0-36dec72071f5
 传输: WebSocket
 路径: /vless
 TLS: 关闭
@@ -172,7 +172,7 @@ ALPN: h3
 ```
 地址: your-domain.com
 端口: 9443
-LN_CLIENT_ID: 1b4db7eb-4057-5ddf-91e0-36dec72071f5
+UUID: 1b4db7eb-4057-5ddf-91e0-36dec72071f5
 密码: 1b4db7eb-4057-5ddf-91e0-36dec72071f5
 ALPN: h3
 ```
@@ -244,6 +244,6 @@ curl http://localhost:8081/health
 
 ## Configuration naming and logs
 
-Deployment variables use the `LN_*` prefix and role-based names such as `LN_WEB_HOST`, `LN_CORE_HOST`, `LN_AUX_HOST`, `LN_FAST_HOST`, and `LN_ALT_HOST`. See [DEPLOY.md](DEPLOY.md#ln-变量命名与日志说明) for the migration table and Railway order of operations.
+`UUID`, `ARGO_TOKEN`, and `ARGO_DOMAIN` retain their established names and embedded defaults. Endpoint variables use the `LN_*` prefix and role-based names such as `LN_CORE_HOST`, `LN_AUX_HOST`, `LN_FAST_HOST`, and `LN_ALT_HOST`. See [DEPLOY.md](DEPLOY.md#ln-变量命名与日志说明) for the migration table and Railway order of operations.
 
 Runtime logging defaults to `LN_LOG_LEVEL=warn`. Startup output omits identifiers, keys, hostnames, ports, and protocol inventory. Use `info` only temporarily during troubleshooting. These controls reduce accidental log disclosure; they do not conceal network protocol characteristics or replace access control.
