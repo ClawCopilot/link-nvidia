@@ -172,3 +172,10 @@ Railway 应保留 `UUID`、`ARGO_TOKEN` 和 `ARGO_DOMAIN`，只迁移端点、Re
 ### 日志最小化
 
 默认 `LN_LOG_LEVEL=warn`。启动日志不打印客户端 ID、令牌、密钥、Short ID、域名、端口或协议清单。临时排障时可设置 `LN_LOG_LEVEL=info`，完成后应恢复为 `warn`。变量改名和日志收敛只减少控制台信息暴露，不改变网络协议特征，也不能替代 Railway、Cloudflare 和 GitHub 的访问权限控制。
+
+
+### Reality 固定值与可选覆盖
+
+`LN_CORE_SECRET`、`LN_CORE_PUBLIC` 和 `LN_CORE_HINT` 都是可选覆盖变量。镜像已经内置当前固定私钥、公钥和 Short ID；Railway 未设置这些变量时，会直接使用内置值，不会生成新值，也不会覆盖或改变现有密钥对。
+
+因此常规部署不需要在 Railway 创建这三个变量。只有主动轮换 Reality 密钥时才应同时设置 `LN_CORE_SECRET`、`LN_CORE_PUBLIC` 和 `LN_CORE_HINT`，并同步刷新客户端订阅。不要只覆盖公钥或私钥中的一项。
