@@ -71,7 +71,7 @@ services:
       # Cloudflare Tunnel Token (可选，不填则用临时隧道)
       ARGO_TOKEN: your-argo-token-here
       # Reality SNI 目标
-      REALITY_SNI: www.microsoft.com
+      REALITY_SNI: www.cloudflare.com
       # 是否启用 WARP (默认 false)
       WARP_ENABLED: "false"
     volumes:
@@ -86,7 +86,7 @@ services:
 | `UUID` | ❌ | `1b4db7eb-4057-5ddf-91e0-36dec72071f5` | 主 UUID，所有协议共用 |
 | `ARGO_TOKEN` | ❌ | 使用内置token | Cloudflare Tunnel Token |
 | `ARGO_DOMAIN` | ❌ | 自动获取 | 固定 Argo 域名 |
-| `REALITY_SNI` | ❌ | `www.microsoft.com` | Reality 握手目标域名 |
+| `REALITY_SNI` | ❌ | `www.cloudflare.com` | Reality 握手目标域名 |
 | `REALITY_PUBLIC_KEY` | ❌ | 自动生成 | Reality 公钥 |
 | `REALITY_PRIVATE_KEY` | ❌ | 自动生成 | Reality 私钥 |
 | `REALITY_SHORT_ID` | ❌ | 随机 8 字符 | Reality 短 ID |
@@ -139,7 +139,7 @@ https://sub-link-nvidia.techidaily.com/sub/singbox
 UUID: 1b4db7eb-4057-5ddf-91e0-36dec72071f5
 传输: (空)
 安全: TLS
-SNI: www.microsoft.com
+SNI: www.cloudflare.com
 Reality: 启用
 Public Key: (订阅自动包含)
 Short ID: (订阅自动包含)
