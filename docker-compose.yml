@@ -17,6 +17,7 @@ services:
       UUID: ${UUID:-1b4db7eb-4057-5ddf-91e0-36dec72071f5}
       ARGO_TOKEN: ${ARGO_TOKEN:-eyJhIjoiZDBkM2UzZjUyZWI1MDQzYjRlYjU3ZTEzZTkwNzg0OTEiLCJ0IjoiNjU1YWUyYWItZjA3Yi00YzM2LTgwOGQtMzk3OTJjMTAyYjgwIiwicyI6Ik5EZ3pZek5oT1dVdE1HVXhPUzAwTkRCa0xUbGlaRFV0T0dWbU9XRXpNMkk1WkRKaCJ9}
       ARGO_DOMAIN: ${ARGO_DOMAIN:-link-nvidia.techidaily.com}
+      LN_WEB_ALT_HOST: ${LN_WEB_ALT_HOST:-ws-link-nvidia.techidaily.com}
       LN_CORE_HOST: ${LN_CORE_HOST:-vless.link-nvidia.techidaily.com}
       LN_FAST_HOST: ${LN_FAST_HOST:-hy2.link-nvidia.techidaily.com}
       LN_ALT_HOST: ${LN_ALT_HOST:-tuic.link-nvidia.techidaily.com}

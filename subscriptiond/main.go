@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	uuid, port, realityPublicKey, realityShortID, realitySNI, argoDomain string
+	uuid, port, realityPublicKey, realityShortID, realitySNI, argoDomain, vlessWSDomain string
 	vlessDomain, hy2Domain, tuicDomain, anytlsDomain          string
 	vlessPublicPort, hy2PublicPort, tuicPublicPort, anytlsPublicPort int
 	keepaliveInterval                                        time.Duration
@@ -24,8 +24,9 @@ func init() {
 	flag.StringVar(&port, "port", "8081", "HTTP port")
 	flag.StringVar(&realityPublicKey, "reality-public-key", "", "Reality public key")
 	flag.StringVar(&realityShortID, "reality-short-id", "", "Reality short ID")
-	flag.StringVar(&realitySNI, "reality-sni", "www.microsoft.com", "Reality TLS server name")
+	flag.StringVar(&realitySNI, "reality-sni", "www.cloudflare.com", "Reality TLS server name")
 	flag.StringVar(&argoDomain, "argo-domain", "", "Cloudflare Tunnel hostname for VMess WS")
+	flag.StringVar(&vlessWSDomain, "vless-ws-domain", "", "Cloudflare Tunnel hostname for VLESS WS")
 	flag.StringVar(&vlessDomain, "vless-domain", "", "Direct VLESS Reality hostname")
 	flag.StringVar(&hy2Domain, "hy2-domain", "", "Direct Hysteria2 hostname")
 	flag.StringVar(&tuicDomain, "tuic-domain", "", "Direct TUIC hostname")
@@ -54,7 +55,7 @@ type VMessNode struct {
 
 func main() {
 	flag.Parse()
-	if uuid == "" || argoDomain == "" || vlessDomain == "" || hy2Domain == "" || tuicDomain == "" || anytlsDomain == "" {
+	if uuid == "" || argoDomain == "" || vlessWSDomain == "" || vlessDomain == "" || hy2Domain == "" || tuicDomain == "" || anytlsDomain == "" {
 		log.Fatal("uuid and all protocol domains are required")
 	}
 	mux := http.NewServeMux()
@@ -102,7 +103,7 @@ func generateSingboxConfig() map[string]any {
 	outbounds := []map[string]any{
 		{"type": "selector", "tag": "proxy", "outbounds": []string{"vless-reality", "vless-ws", "vmess-ws", "hysteria2", "tuic", "anytls"}},
 		{"type": "vless", "tag": "vless-reality", "server": vlessDomain, "server_port": vlessPublicPort, "uuid": uuid, "flow": "xtls-rprx-vision", "tls": map[string]any{"enabled": true, "server_name": realitySNI, "utls": map[string]any{"enabled": true, "fingerprint": "chrome"}, "reality": map[string]any{"enabled": true, "public_key": realityPublicKey, "short_id": realityShortID}}},
-		{"type": "vless", "tag": "vless-ws", "server": argoDomain, "server_port": 443, "uuid": uuid, "transport": map[string]any{"type": "ws", "path": "/vless-ws", "headers": map[string]string{"Host": argoDomain}}, "tls": map[string]any{"enabled": true, "server_name": argoDomain}},
+		{"type": "vless", "tag": "vless-ws", "server": vlessWSDomain, "server_port": 443, "uuid": uuid, "transport": map[string]any{"type": "ws", "path": "/vless-ws", "headers": map[string]string{"Host": vlessWSDomain}}, "tls": map[string]any{"enabled": true, "server_name": vlessWSDomain}},
 		{"type": "vmess", "tag": "vmess-ws", "server": argoDomain, "server_port": 443, "uuid": uuid, "security": "auto", "transport": map[string]any{"type": "ws", "path": "/vless", "headers": map[string]string{"Host": argoDomain}}, "tls": map[string]any{"enabled": true, "server_name": argoDomain}},
 		{"type": "hysteria2", "tag": "hysteria2", "server": hy2Domain, "server_port": hy2PublicPort, "password": uuid, "tls": quicTLS(hy2Domain)},
 		{"type": "tuic", "tag": "tuic", "server": tuicDomain, "server_port": tuicPublicPort, "uuid": uuid, "password": uuid, "congestion_control": "bbr", "tls": quicTLS(tuicDomain)},
@@ -196,7 +197,7 @@ rules:
   - GEOIP,CN,DIRECT
   - MATCH,proxy
 `, vlessDomain, vlessPublicPort, uuid, realitySNI, realityPublicKey, realityShortID,
-		argoDomain, uuid, argoDomain, argoDomain,
+		vlessWSDomain, uuid, vlessWSDomain, vlessWSDomain,
 		argoDomain, uuid, argoDomain, argoDomain,
 		hy2Domain, hy2PublicPort, uuid, hy2Domain,
 		tuicDomain, tuicPublicPort, uuid, uuid, tuicDomain,

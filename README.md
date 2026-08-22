@@ -259,4 +259,4 @@ Runtime logs use role-based paths: `/tmp/ln-core.log`, `/tmp/ln-edge.log`, and `
 
 ## Dual VLESS paths
 
-The deployment provides both direct VLESS Reality and a VLESS WebSocket fallback. Reality uses the Railway TCP Proxy, while VLESS WS uses `ARGO_DOMAIN:443/vless-ws` through the existing Cloudflare Tunnel and local port 8082. The more-specific `^/vless-ws$` Tunnel rule must precede the hostname's default `http://localhost:8080` rule. See [DEPLOY.md](DEPLOY.md#同时启用-vless-reality-与-vless-websocket).
+The deployment provides both direct VLESS Reality and a VLESS WebSocket fallback. Reality uses the Railway TCP Proxy. VLESS WS uses the dedicated `ws-link-nvidia.techidaily.com` Tunnel hostname and local port 8082, controlled by optional `LN_WEB_ALT_HOST`. VMess WS remains on `ARGO_DOMAIN` and local port 8080. No path-based Tunnel routing or additional Railway TCP Proxy is required. See [DEPLOY.md](DEPLOY.md#同时启用-vless-reality-与-vless-websocket).
