@@ -100,8 +100,9 @@ func generateSingboxConfig() map[string]any {
 	}
 	anytlsTLS := map[string]any{"enabled": true, "server_name": anytlsDomain, "insecure": true}
 	outbounds := []map[string]any{
-		{"type": "selector", "tag": "proxy", "outbounds": []string{"vless-reality", "vmess-ws", "hysteria2", "tuic", "anytls"}},
+		{"type": "selector", "tag": "proxy", "outbounds": []string{"vless-reality", "vless-ws", "vmess-ws", "hysteria2", "tuic", "anytls"}},
 		{"type": "vless", "tag": "vless-reality", "server": vlessDomain, "server_port": vlessPublicPort, "uuid": uuid, "flow": "xtls-rprx-vision", "tls": map[string]any{"enabled": true, "server_name": realitySNI, "utls": map[string]any{"enabled": true, "fingerprint": "chrome"}, "reality": map[string]any{"enabled": true, "public_key": realityPublicKey, "short_id": realityShortID}}},
+		{"type": "vless", "tag": "vless-ws", "server": argoDomain, "server_port": 443, "uuid": uuid, "transport": map[string]any{"type": "ws", "path": "/vless-ws", "headers": map[string]string{"Host": argoDomain}}, "tls": map[string]any{"enabled": true, "server_name": argoDomain}},
 		{"type": "vmess", "tag": "vmess-ws", "server": argoDomain, "server_port": 443, "uuid": uuid, "security": "auto", "transport": map[string]any{"type": "ws", "path": "/vless", "headers": map[string]string{"Host": argoDomain}}, "tls": map[string]any{"enabled": true, "server_name": argoDomain}},
 		{"type": "hysteria2", "tag": "hysteria2", "server": hy2Domain, "server_port": hy2PublicPort, "password": uuid, "tls": quicTLS(hy2Domain)},
 		{"type": "tuic", "tag": "tuic", "server": tuicDomain, "server_port": tuicPublicPort, "uuid": uuid, "password": uuid, "congestion_control": "bbr", "tls": quicTLS(tuicDomain)},
@@ -109,7 +110,7 @@ func generateSingboxConfig() map[string]any {
 		{"type": "direct", "tag": "direct"},
 	}
 	return map[string]any{
-		"log": map[string]any{"level": "info", "timestamp": true},
+		"log": map[string]any{"level": "warn", "timestamp": true},
 		"dns": map[string]any{"servers": []map[string]any{{"type": "local", "tag": "local"}}, "final": "local"},
 		"outbounds": outbounds,
 		"route": map[string]any{"auto_detect_interface": true, "final": "proxy"},
@@ -121,7 +122,7 @@ func generateClashConfig() string {
 socks-port: 7891
 allow-lan: true
 mode: rule
-log-level: info
+log-level: warning
 
 proxies:
   - name: link-nvidia-vless-reality
@@ -137,6 +138,19 @@ proxies:
     reality-opts:
       public-key: %s
       short-id: %s
+  - name: link-nvidia-vless-ws
+    type: vless
+    server: %s
+    port: 443
+    uuid: %s
+    network: ws
+    tls: true
+    udp: true
+    servername: %s
+    client-fingerprint: chrome
+    ws-opts:
+      path: /vless-ws
+      headers: {Host: %s}
   - name: link-nvidia-vmess-ws
     type: vmess
     server: %s
@@ -177,11 +191,12 @@ proxies:
 proxy-groups:
   - name: proxy
     type: select
-    proxies: [link-nvidia-vless-reality, link-nvidia-vmess-ws, link-nvidia-hy2, link-nvidia-tuic, link-nvidia-anytls]
+    proxies: [link-nvidia-vless-reality, link-nvidia-vless-ws, link-nvidia-vmess-ws, link-nvidia-hy2, link-nvidia-tuic, link-nvidia-anytls]
 rules:
   - GEOIP,CN,DIRECT
   - MATCH,proxy
 `, vlessDomain, vlessPublicPort, uuid, realitySNI, realityPublicKey, realityShortID,
+		argoDomain, uuid, argoDomain, argoDomain,
 		argoDomain, uuid, argoDomain, argoDomain,
 		hy2Domain, hy2PublicPort, uuid, hy2Domain,
 		tuicDomain, tuicPublicPort, uuid, uuid, tuicDomain,
