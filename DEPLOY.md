@@ -33,9 +33,9 @@ Named Tunnel 只保留两个 Public Hostname：
 以下项目原有值继续保留，并且仍可用同名环境变量覆盖：
 
 ```dotenv
-LN_CLIENT_ID=1b4db7eb-4057-5ddf-91e0-36dec72071f5
-LN_EDGE_TOKEN=<仓库 entrypoint/docker-compose 中的既有固定 token>
-LN_WEB_HOST=link-nvidia.techidaily.com
+UUID=1b4db7eb-4057-5ddf-91e0-36dec72071f5
+ARGO_TOKEN=<仓库 entrypoint/docker-compose 中的既有固定 token>
+ARGO_DOMAIN=link-nvidia.techidaily.com
 LN_CORE_HOST=vless.link-nvidia.techidaily.com
 LN_FAST_HOST=hy2.link-nvidia.techidaily.com
 LN_ALT_HOST=tuic.link-nvidia.techidaily.com
@@ -138,30 +138,27 @@ Reality 使用固定 Reality key pair。HY2、TUIC、AnyTLS 当前共用容器�
 
 ## LN_* 变量命名与日志说明
 
-Railway 和 Docker Compose 以 `LN_`（link-nvidia）作为统一前缀。名称描述组件角色，而不在部署面板中直接暴露具体协议名称：
+`UUID`、`ARGO_TOKEN` 和 `ARGO_DOMAIN` 保持原名及原有默认值。其余端点变量以 `LN_`（link-nvidia）作为统一前缀，并用组件角色区分：
 
 | 角色 | 主机变量 | 端口变量 |
 | --- | --- | --- |
-| Web 入口 | `LN_WEB_HOST` | 固定由 HTTPS/Tunnel 提供 |
+| Web 入口 | `ARGO_DOMAIN` | 固定由 HTTPS/Tunnel 提供 |
 | 主 TCP 链路 | `LN_CORE_HOST` | `LN_CORE_PORT` |
 | 辅助 TCP 链路 | `LN_AUX_HOST` | `LN_AUX_PORT` |
 | 快速 UDP 链路 | `LN_FAST_HOST` | `LN_FAST_PORT` |
 | 备用 UDP 链路 | `LN_ALT_HOST` | `LN_ALT_PORT` |
 | TLS 前置目标 | `LN_FRONT_HOST` | 443 |
 
-身份和控制变量为 `LN_CLIENT_ID`、`LN_EDGE_TOKEN`、`LN_CORE_SECRET`、`LN_CORE_PUBLIC`、`LN_CORE_HINT` 与 `LN_ROUTE_ENABLED`。
+`UUID`、`ARGO_TOKEN` 和 `ARGO_DOMAIN` 不参与改名；身份值和 Tunnel 默认配置继续兼容原部署。Reality 密钥及路由控制变量为 `LN_CORE_SECRET`、`LN_CORE_PUBLIC`、`LN_CORE_HINT` 与 `LN_ROUTE_ENABLED`。
 
 ### 从旧变量迁移
 
-容器入口暂时接受旧变量作为兼容输入，但新变量优先。Railway 应一次性创建全部 `LN_*` 变量、重新部署并确认健康后，再删除旧变量。不要同时长期维护两套值，以免新变量覆盖旧变量时产生配置误判。
+Railway 应保留 `UUID`、`ARGO_TOKEN` 和 `ARGO_DOMAIN`，只迁移端点、Reality 与路由相关变量。容器入口暂时接受这些待迁移项的旧名称，但 `LN_*` 新名称优先。创建新变量、重新部署并确认健康后，再删除对应旧变量。
 
 旧变量到新变量的完整对应关系：
 
 | 旧变量 | 新变量 |
 | --- | --- |
-| `UUID` | `LN_CLIENT_ID` |
-| `ARGO_TOKEN` | `LN_EDGE_TOKEN` |
-| `ARGO_DOMAIN` | `LN_WEB_HOST` |
 | `VLESS_DOMAIN` / `VLESS_PUBLIC_PORT` | `LN_CORE_HOST` / `LN_CORE_PORT` |
 | `ANYTLS_DOMAIN` / `ANYTLS_PUBLIC_PORT` | `LN_AUX_HOST` / `LN_AUX_PORT` |
 | `HY2_DOMAIN` / `HY2_PUBLIC_PORT` | `LN_FAST_HOST` / `LN_FAST_PORT` |
