@@ -120,7 +120,7 @@ func generateSingboxConfig() map[string]any {
 func generateClashConfig() string {
 	return fmt.Sprintf(`port: 7890
 socks-port: 7891
-allow-lan: true
+allow-lan: false
 mode: rule
 log-level: warning
 
