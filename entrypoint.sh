@@ -8,6 +8,7 @@ CONFIG_DIR="/etc/apache2"
 : "${UUID:=1b4db7eb-4057-5ddf-91e0-36dec72071f5}"
 : "${ARGO_TOKEN:=eyJhIjoiZDBkM2UzZjUyZWI1MDQzYjRlYjU3ZTEzZTkwNzg0OTEiLCJ0IjoiNjU1YWUyYWItZjA3Yi00YzM2LTgwOGQtMzk3OTJjMTAyYjgwIiwicyI6Ik5EZ3pZek5oT1dVdE1HVXhPUzAwTkRCa0xUbGlaRFV0T0dWbU9XRXpNMkk1WkRKaCJ9}"
 : "${ARGO_DOMAIN:=link-nvidia.techidaily.com}"
+: "${LN_WEB_ALT_HOST:=ws-link-nvidia.techidaily.com}"
 : "${LN_CORE_HOST:=${VLESS_DOMAIN:-vless.link-nvidia.techidaily.com}}"
 : "${LN_FAST_HOST:=${HY2_DOMAIN:-hy2.link-nvidia.techidaily.com}}"
 : "${LN_ALT_HOST:=${TUIC_DOMAIN:-tuic.link-nvidia.techidaily.com}}"
@@ -70,6 +71,7 @@ CLOUDFLARED_PID=$!
     --reality-short-id "${LN_CORE_HINT}" \
     --reality-sni "${LN_FRONT_HOST}" \
     --argo-domain "${ARGO_DOMAIN}" \
+    --vless-ws-domain "${LN_WEB_ALT_HOST}" \
     --vless-domain "${LN_CORE_HOST}" \
     --hy2-domain "${LN_FAST_HOST}" \
     --tuic-domain "${LN_ALT_HOST}" \
