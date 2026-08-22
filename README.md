@@ -247,3 +247,8 @@ curl http://localhost:8081/health
 `UUID`, `ARGO_TOKEN`, and `ARGO_DOMAIN` retain their established names and embedded defaults. Endpoint variables use the `LN_*` prefix and role-based names such as `LN_CORE_HOST`, `LN_AUX_HOST`, `LN_FAST_HOST`, and `LN_ALT_HOST`. See [DEPLOY.md](DEPLOY.md#ln-变量命名与日志说明) for the migration table and Railway order of operations.
 
 Runtime logging defaults to `LN_LOG_LEVEL=warn`. Startup output omits identifiers, keys, hostnames, ports, and protocol inventory. Use `info` only temporarily during troubleshooting. These controls reduce accidental log disclosure; they do not conceal network protocol characteristics or replace access control.
+
+
+### Reality defaults
+
+`LN_CORE_SECRET`, `LN_CORE_PUBLIC`, and `LN_CORE_HINT` are optional overrides. The image retains the current fixed Reality private key, public key, and Short ID. If they are absent, startup uses those embedded values without regenerating or changing them. Set all three together only when intentionally rotating the Reality identity.
