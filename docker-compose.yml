@@ -10,6 +10,7 @@ services:
       - "9444:9444/tcp"   # AnyTLS
       - "127.0.0.1:8080:8080/tcp" # VMess WebSocket Tunnel origin
       - "127.0.0.1:8081:8081/tcp" # subscription/health Tunnel origin
+      - "127.0.0.1:8082:8082/tcp" # VLESS WebSocket Tunnel origin
 
     environment:
       # UUID, ARGO_TOKEN, and ARGO_DOMAIN retain their established names and defaults; endpoint roles use LN_*.

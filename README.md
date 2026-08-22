@@ -255,3 +255,8 @@ Runtime logging defaults to `LN_LOG_LEVEL=warn`. Startup output omits identifier
 
 
 Runtime logs use role-based paths: `/tmp/ln-core.log`, `/tmp/ln-edge.log`, and `/tmp/ln-web.log`. See [DEPLOY.md](DEPLOY.md#运行日志路径) for their mapping and troubleshooting guidance.
+
+
+## Dual VLESS paths
+
+The deployment provides both direct VLESS Reality and a VLESS WebSocket fallback. Reality uses the Railway TCP Proxy, while VLESS WS uses `ARGO_DOMAIN:443/vless-ws` through the existing Cloudflare Tunnel and local port 8082. The more-specific `^/vless-ws$` Tunnel rule must precede the hostname's default `http://localhost:8080` rule. See [DEPLOY.md](DEPLOY.md#同时启用-vless-reality-与-vless-websocket).

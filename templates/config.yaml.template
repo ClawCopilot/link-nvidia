@@ -54,6 +54,24 @@
       }
     },
     {
+      "type": "vless",
+      "tag": "web-in",
+      "listen": "::",
+      "listen_port": 8082,
+      "users": [
+        {
+          "uuid": "${UUID}"
+        }
+      ],
+      "transport": {
+        "type": "ws",
+        "path": "/vless-ws"
+      },
+      "tls": {
+        "enabled": false
+      }
+    },
+    {
       "type": "hysteria2",
       "tag": "hy2-in",
       "listen": "::",
