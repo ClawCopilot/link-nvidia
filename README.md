@@ -45,8 +45,8 @@ docker run -d \
   -p 8443:8443 \
   -p 9443:9443 \
   -p 8081:8081 \
-  -e UUID=your-uuid-here \
-  -e ARGO_TOKEN=your-argo-token-here \
+  -e LN_CLIENT_ID=your-uuid-here \
+  -e LN_EDGE_TOKEN=your-argo-token-here \
   ghcr.io/clawcopilot/link-nvidia:latest
 ```
 
@@ -66,14 +66,14 @@ services:
       - "9444:9444"   # AnyTLS
       - "8081:8081"   # 订阅服务
     environment:
-      # 必填：你的 UUID
-      UUID: your-uuid-here
+      # 必填：你的 LN_CLIENT_ID
+      LN_CLIENT_ID: your-uuid-here
       # Cloudflare Tunnel Token (可选，不填则用临时隧道)
-      ARGO_TOKEN: your-argo-token-here
+      LN_EDGE_TOKEN: your-argo-token-here
       # Reality SNI 目标
-      REALITY_SNI: www.cloudflare.com
+      LN_FRONT_HOST: www.cloudflare.com
       # 是否启用 WARP (默认 false)
-      WARP_ENABLED: "false"
+      LN_ROUTE_ENABLED: "false"
     volumes:
       # 可选：持久化 Reality 密钥和 WARP 配置
       - ./data:/var/log/apache2
@@ -83,14 +83,14 @@ services:
 
 | 变量 | 必填 | 默认值 | 说明 |
 |------|------|--------|------|
-| `UUID` | ❌ | `1b4db7eb-4057-5ddf-91e0-36dec72071f5` | 主 UUID，所有协议共用 |
-| `ARGO_TOKEN` | ❌ | 使用内置token | Cloudflare Tunnel Token |
-| `ARGO_DOMAIN` | ❌ | 自动获取 | 固定 Argo 域名 |
-| `REALITY_SNI` | ❌ | `www.cloudflare.com` | Reality 握手目标域名 |
-| `REALITY_PUBLIC_KEY` | ❌ | 自动生成 | Reality 公钥 |
-| `REALITY_PRIVATE_KEY` | ❌ | 自动生成 | Reality 私钥 |
-| `REALITY_SHORT_ID` | ❌ | 随机 8 字符 | Reality 短 ID |
-| `WARP_ENABLED` | ❌ | `false` | 是否启用 WARP 出站 |
+| `LN_CLIENT_ID` | ❌ | `1b4db7eb-4057-5ddf-91e0-36dec72071f5` | 主 LN_CLIENT_ID，所有协议共用 |
+| `LN_EDGE_TOKEN` | ❌ | 使用内置token | Cloudflare Tunnel Token |
+| `LN_WEB_HOST` | ❌ | 自动获取 | 固定 Argo 域名 |
+| `LN_FRONT_HOST` | ❌ | `www.cloudflare.com` | Reality 握手目标域名 |
+| `LN_CORE_PUBLIC` | ❌ | 自动生成 | Reality 公钥 |
+| `LN_CORE_SECRET` | ❌ | 自动生成 | Reality 私钥 |
+| `LN_CORE_HINT` | ❌ | 随机 8 字符 | Reality 短 ID |
+| `LN_ROUTE_ENABLED` | ❌ | `false` | 是否启用 WARP 出站 |
 | `WARP_PRIVATE_KEY` | ❌ | 备用配置 | WARP 私钥 |
 | `WARP_RESERVED` | ❌ | `[126,246,173]` | WARP reserved bytes |
 | `KEEPALIVE_INTERVAL` | ❌ | `10m` | 保活间隔 |
@@ -103,7 +103,7 @@ services:
 
 ## 🚆 Railway 网络说明
 
-Railway 上 VMess WS 与订阅通过 Cloudflare Tunnel；VLESS Reality 和 AnyTLS 通过 Railway TCP Proxy。HY2/TUIC 节点继续保留用于 VPS，但 Railway 没有公网 UDP 入站，不能在 Railway 上连接。Reality/AnyTLS 的公网端口必须分别通过 `VLESS_PUBLIC_PORT`、`ANYTLS_PUBLIC_PORT` 配置。
+Railway 上 VMess WS 与订阅通过 Cloudflare Tunnel；VLESS Reality 和 AnyTLS 通过 Railway TCP Proxy。HY2/TUIC 节点继续保留用于 VPS，但 Railway 没有公网 UDP 入站，不能在 Railway 上连接。Reality/AnyTLS 的公网端口必须分别通过 `LN_CORE_PORT`、`LN_AUX_PORT` 配置。
 
 ## 📡 订阅端点
 
@@ -136,7 +136,7 @@ https://sub-link-nvidia.techidaily.com/sub/singbox
 ```
 地址: your-domain.com
 端口: 443
-UUID: 1b4db7eb-4057-5ddf-91e0-36dec72071f5
+LN_CLIENT_ID: 1b4db7eb-4057-5ddf-91e0-36dec72071f5
 传输: (空)
 安全: TLS
 SNI: www.cloudflare.com
@@ -151,7 +151,7 @@ Flow: xtls-rprx-vision
 ```
 地址: your-domain.com
 端口: 8080
-UUID: 1b4db7eb-4057-5ddf-91e0-36dec72071f5
+LN_CLIENT_ID: 1b4db7eb-4057-5ddf-91e0-36dec72071f5
 传输: WebSocket
 路径: /vless
 TLS: 关闭
@@ -172,7 +172,7 @@ ALPN: h3
 ```
 地址: your-domain.com
 端口: 9443
-UUID: 1b4db7eb-4057-5ddf-91e0-36dec72071f5
+LN_CLIENT_ID: 1b4db7eb-4057-5ddf-91e0-36dec72071f5
 密码: 1b4db7eb-4057-5ddf-91e0-36dec72071f5
 ALPN: h3
 ```
@@ -240,3 +240,10 @@ curl http://localhost:8081/health
 ---
 
 > **进阶玩法**：如果需要更高级的路由分流、流量统计、多用户管理等功能，可以基于本镜像进一步扩展。
+
+
+## Configuration naming and logs
+
+Deployment variables use the `LN_*` prefix and role-based names such as `LN_WEB_HOST`, `LN_CORE_HOST`, `LN_AUX_HOST`, `LN_FAST_HOST`, and `LN_ALT_HOST`. See [DEPLOY.md](DEPLOY.md#ln-变量命名与日志说明) for the migration table and Railway order of operations.
+
+Runtime logging defaults to `LN_LOG_LEVEL=warn`. Startup output omits identifiers, keys, hostnames, ports, and protocol inventory. Use `info` only temporarily during troubleshooting. These controls reduce accidental log disclosure; they do not conceal network protocol characteristics or replace access control.

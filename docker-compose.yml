@@ -12,28 +12,29 @@ services:
       - "127.0.0.1:8081:8081/tcp" # subscription/health Tunnel origin
 
     environment:
-      # Intentionally embedded defaults; deployment environments may override them.
-      UUID: ${UUID:-1b4db7eb-4057-5ddf-91e0-36dec72071f5}
-      ARGO_TOKEN: ${ARGO_TOKEN:-eyJhIjoiZDBkM2UzZjUyZWI1MDQzYjRlYjU3ZTEzZTkwNzg0OTEiLCJ0IjoiNjU1YWUyYWItZjA3Yi00YzM2LTgwOGQtMzk3OTJjMTAyYjgwIiwicyI6Ik5EZ3pZek5oT1dVdE1HVXhPUzAwTkRCa0xUbGlaRFV0T0dWbU9XRXpNMkk1WkRKaCJ9}
-      ARGO_DOMAIN: ${ARGO_DOMAIN:-link-nvidia.techidaily.com}
-      VLESS_DOMAIN: ${VLESS_DOMAIN:-vless.link-nvidia.techidaily.com}
-      HY2_DOMAIN: ${HY2_DOMAIN:-hy2.link-nvidia.techidaily.com}
-      TUIC_DOMAIN: ${TUIC_DOMAIN:-tuic.link-nvidia.techidaily.com}
-      ANYTLS_DOMAIN: ${ANYTLS_DOMAIN:-anytls.link-nvidia.techidaily.com}
+      # Canonical link-nvidia variables; container entrypoint also accepts legacy names temporarily.
+      LN_CLIENT_ID: ${LN_CLIENT_ID:-1b4db7eb-4057-5ddf-91e0-36dec72071f5}
+      LN_EDGE_TOKEN: ${LN_EDGE_TOKEN:-eyJhIjoiZDBkM2UzZjUyZWI1MDQzYjRlYjU3ZTEzZTkwNzg0OTEiLCJ0IjoiNjU1YWUyYWItZjA3Yi00YzM2LTgwOGQtMzk3OTJjMTAyYjgwIiwicyI6Ik5EZ3pZek5oT1dVdE1HVXhPUzAwTkRCa0xUbGlaRFV0T0dWbU9XRXpNMkk1WkRKaCJ9}
+      LN_WEB_HOST: ${LN_WEB_HOST:-link-nvidia.techidaily.com}
+      LN_CORE_HOST: ${LN_CORE_HOST:-vless.link-nvidia.techidaily.com}
+      LN_FAST_HOST: ${LN_FAST_HOST:-hy2.link-nvidia.techidaily.com}
+      LN_ALT_HOST: ${LN_ALT_HOST:-tuic.link-nvidia.techidaily.com}
+      LN_AUX_HOST: ${LN_AUX_HOST:-anytls.link-nvidia.techidaily.com}
 
       # Public client ports. Keep these defaults on a VPS. On Railway, set
-      # VLESS_PUBLIC_PORT and ANYTLS_PUBLIC_PORT to the generated TCP Proxy ports.
-      VLESS_PUBLIC_PORT: ${VLESS_PUBLIC_PORT:-443}
-      HY2_PUBLIC_PORT: ${HY2_PUBLIC_PORT:-8443}
-      TUIC_PUBLIC_PORT: ${TUIC_PUBLIC_PORT:-9443}
-      ANYTLS_PUBLIC_PORT: ${ANYTLS_PUBLIC_PORT:-9444}
+      # LN_CORE_PORT and LN_AUX_PORT to the generated TCP Proxy ports.
+      LN_CORE_PORT: ${LN_CORE_PORT:-443}
+      LN_FAST_PORT: ${LN_FAST_PORT:-8443}
+      LN_ALT_PORT: ${LN_ALT_PORT:-9443}
+      LN_AUX_PORT: ${LN_AUX_PORT:-9444}
 
-      REALITY_SNI: ${REALITY_SNI:-www.cloudflare.com}
-      REALITY_PRIVATE_KEY: ${REALITY_PRIVATE_KEY:-iEN-abAE80W942AqjpS0k6a6UenauvBca45P1QTFLnw}
-      REALITY_PUBLIC_KEY: ${REALITY_PUBLIC_KEY:-wv6JL9uQquOEgd4Y5UOwYRspCsKkaxk3K8ePX1Xno2w}
-      REALITY_SHORT_ID: ${REALITY_SHORT_ID:-3ff4bf41}
+      LN_FRONT_HOST: ${LN_FRONT_HOST:-www.cloudflare.com}
+      LN_CORE_SECRET: ${LN_CORE_SECRET:-iEN-abAE80W942AqjpS0k6a6UenauvBca45P1QTFLnw}
+      LN_CORE_PUBLIC: ${LN_CORE_PUBLIC:-wv6JL9uQquOEgd4Y5UOwYRspCsKkaxk3K8ePX1Xno2w}
+      LN_CORE_HINT: ${LN_CORE_HINT:-3ff4bf41}
 
-      WARP_ENABLED: ${WARP_ENABLED:-false}
+      LN_ROUTE_ENABLED: ${LN_ROUTE_ENABLED:-false}
+      LN_LOG_LEVEL: ${LN_LOG_LEVEL:-warn}
       KEEPALIVE_INTERVAL: ${KEEPALIVE_INTERVAL:-10m}
 
     healthcheck:
