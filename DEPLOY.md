@@ -44,7 +44,7 @@ VLESS_PUBLIC_PORT=443
 HY2_PUBLIC_PORT=8443
 TUIC_PUBLIC_PORT=9443
 ANYTLS_PUBLIC_PORT=9444
-REALITY_SNI=www.microsoft.com
+REALITY_SNI=www.cloudflare.com
 REALITY_PRIVATE_KEY=iEN-abAE80W942AqjpS0k6a6UenauvBca45P1QTFLnw
 REALITY_PUBLIC_KEY=wv6JL9uQquOEgd4Y5UOwYRspCsKkaxk3K8ePX1Xno2w
 REALITY_SHORT_ID=3ff4bf41
@@ -127,7 +127,7 @@ https://sub-link-nvidia.techidaily.com/health
 
 Railway 中必须为容器内部端口 `443` 创建 TCP Proxy，并把其公网端口写入 `VLESS_PUBLIC_PORT`。`vless.*` 必须是 DNS-only（灰云）CNAME，指向 Railway TCP Proxy 域名。
 
-可先绕过自定义 DNS，用 Railway 原始代理地址测试。若 `turntable.proxy.rlwy.net:27231` 可用而 `vless.link-nvidia.techidaily.com:27231` 不可用，问题就在 Cloudflare DNS。客户端必须使用：`flow=xtls-rprx-vision`、`SNI=www.microsoft.com`、固定 Reality public key 与 short ID。
+可先绕过自定义 DNS，用 Railway 原始代理地址测试。若 `turntable.proxy.rlwy.net:27231` 可用而 `vless.link-nvidia.techidaily.com:27231` 不可用，问题就在 Cloudflare DNS。客户端必须使用：`flow=xtls-rprx-vision`、`SNI=www.cloudflare.com`、固定 Reality public key 与 short ID。
 
 ## 9. 证书与进程监督
 
