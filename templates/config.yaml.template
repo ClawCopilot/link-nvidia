@@ -12,7 +12,7 @@
       "listen_port": 443,
       "users": [
         {
-          "uuid": "${LN_CLIENT_ID}",
+          "uuid": "${UUID}",
           "flow": "xtls-rprx-vision"
         }
       ],
@@ -38,7 +38,7 @@
       "listen_port": 8080,
       "users": [
         {
-          "uuid": "${LN_CLIENT_ID}",
+          "uuid": "${UUID}",
           "alterId": 0
         }
       ],
@@ -50,7 +50,7 @@
       },
       "tls": {
         "enabled": false,
-        "server_name": "${LN_WEB_HOST}"
+        "server_name": "${ARGO_DOMAIN}"
       }
     },
     {
@@ -60,7 +60,7 @@
       "listen_port": 8443,
       "users": [
         {
-          "password": "${LN_CLIENT_ID}"
+          "password": "${UUID}"
         }
       ],
       "ignore_client_bandwidth": false,
@@ -78,8 +78,8 @@
       "listen_port": 9443,
       "users": [
         {
-          "uuid": "${LN_CLIENT_ID}",
-          "password": "${LN_CLIENT_ID}"
+          "uuid": "${UUID}",
+          "password": "${UUID}"
         }
       ],
       "congestion_control": "bbr",
@@ -97,7 +97,7 @@
       "listen_port": 9444,
       "users": [
         {
-          "password": "${LN_CLIENT_ID}"
+          "password": "${UUID}"
         }
       ],
       "padding_scheme": [],
