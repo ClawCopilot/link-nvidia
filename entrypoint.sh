@@ -3,11 +3,11 @@ set -eu
 
 CONFIG_DIR="/etc/apache2"
 
-# Canonical LN_* names keep Railway configuration concise. The legacy names
-# remain input-only compatibility aliases for existing deployments.
-: "${LN_CLIENT_ID:=${UUID:-1b4db7eb-4057-5ddf-91e0-36dec72071f5}}"
-: "${LN_EDGE_TOKEN:=${ARGO_TOKEN:-eyJhIjoiZDBkM2UzZjUyZWI1MDQzYjRlYjU3ZTEzZTkwNzg0OTEiLCJ0IjoiNjU1YWUyYWItZjA3Yi00YzM2LTgwOGQtMzk3OTJjMTAyYjgwIiwicyI6Ik5EZ3pZek5oT1dVdE1HVXhPUzAwTkRCa0xUbGlaRFV0T0dWbU9XRXpNMkk1WkRKaCJ9}}"
-: "${LN_WEB_HOST:=${ARGO_DOMAIN:-link-nvidia.techidaily.com}}"
+# UUID, ARGO_TOKEN, and ARGO_DOMAIN intentionally retain their established names
+# and embedded defaults. Role-based endpoint settings use canonical LN_* names.
+: "${UUID:=1b4db7eb-4057-5ddf-91e0-36dec72071f5}"
+: "${ARGO_TOKEN:=eyJhIjoiZDBkM2UzZjUyZWI1MDQzYjRlYjU3ZTEzZTkwNzg0OTEiLCJ0IjoiNjU1YWUyYWItZjA3Yi00YzM2LTgwOGQtMzk3OTJjMTAyYjgwIiwicyI6Ik5EZ3pZek5oT1dVdE1HVXhPUzAwTkRCa0xUbGlaRFV0T0dWbU9XRXpNMkk1WkRKaCJ9}"
+: "${ARGO_DOMAIN:=link-nvidia.techidaily.com}"
 : "${LN_CORE_HOST:=${VLESS_DOMAIN:-vless.link-nvidia.techidaily.com}}"
 : "${LN_FAST_HOST:=${HY2_DOMAIN:-hy2.link-nvidia.techidaily.com}}"
 : "${LN_ALT_HOST:=${TUIC_DOMAIN:-tuic.link-nvidia.techidaily.com}}"
@@ -46,8 +46,8 @@ if [ ! -f "${CONFIG_DIR}/cert.pem" ] || [ ! -f "${CONFIG_DIR}/private.key" ]; th
         -days 3650 -subj "/CN=${LN_AUX_HOST}"
 fi
 
-export LN_CLIENT_ID LN_FRONT_HOST LN_CORE_SECRET LN_CORE_PUBLIC LN_CORE_HINT LN_LOG_LEVEL
-export WARP_PRIVATE_KEY WARP_RESERVED WARP_IPV6 LN_WEB_HOST
+export UUID LN_FRONT_HOST LN_CORE_SECRET LN_CORE_PUBLIC LN_CORE_HINT LN_LOG_LEVEL
+export WARP_PRIVATE_KEY WARP_RESERVED WARP_IPV6 ARGO_DOMAIN
 
 envsubst < /templates/config.yaml.template > "${CONFIG_DIR}/config.json"
 
@@ -60,17 +60,17 @@ cleanup() {
 }
 trap cleanup TERM INT EXIT
 
-/usr/sbin/rsyslogd2 tunnel --no-autoupdate run --token "${LN_EDGE_TOKEN}" \
+/usr/sbin/rsyslogd2 tunnel --no-autoupdate run --token "${ARGO_TOKEN}" \
     > /tmp/cloudflared.log 2>&1 &
 CLOUDFLARED_PID=$!
 
 /usr/local/bin/subscriptiond \
-    --uuid "${LN_CLIENT_ID}" \
+    --uuid "${UUID}" \
     --port "${SUBSCRIPTION_PORT}" \
     --reality-public-key "${LN_CORE_PUBLIC}" \
     --reality-short-id "${LN_CORE_HINT}" \
     --reality-sni "${LN_FRONT_HOST}" \
-    --argo-domain "${LN_WEB_HOST}" \
+    --argo-domain "${ARGO_DOMAIN}" \
     --vless-domain "${LN_CORE_HOST}" \
     --hy2-domain "${LN_FAST_HOST}" \
     --tuic-domain "${LN_ALT_HOST}" \
