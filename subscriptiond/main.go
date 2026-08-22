@@ -24,7 +24,7 @@ func init() {
 	flag.StringVar(&port, "port", "8081", "HTTP port")
 	flag.StringVar(&realityPublicKey, "reality-public-key", "", "Reality public key")
 	flag.StringVar(&realityShortID, "reality-short-id", "", "Reality short ID")
-	flag.StringVar(&realitySNI, "reality-sni", "www.microsoft.com", "Reality TLS server name")
+	flag.StringVar(&realitySNI, "reality-sni", "www.cloudflare.com", "Reality TLS server name")
 	flag.StringVar(&argoDomain, "argo-domain", "", "Cloudflare Tunnel hostname for VMess WS")
 	flag.StringVar(&vlessWSDomain, "vless-ws-domain", "", "Cloudflare Tunnel hostname for VLESS WS")
 	flag.StringVar(&vlessDomain, "vless-domain", "", "Direct VLESS Reality hostname")
