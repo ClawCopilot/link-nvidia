@@ -252,3 +252,6 @@ Runtime logging defaults to `LN_LOG_LEVEL=warn`. Startup output omits identifier
 ### Reality defaults
 
 `LN_CORE_SECRET`, `LN_CORE_PUBLIC`, and `LN_CORE_HINT` are optional overrides. The image retains the current fixed Reality private key, public key, and Short ID. If they are absent, startup uses those embedded values without regenerating or changing them. Set all three together only when intentionally rotating the Reality identity.
+
+
+Runtime logs use role-based paths: `/tmp/ln-core.log`, `/tmp/ln-edge.log`, and `/tmp/ln-web.log`. See [DEPLOY.md](DEPLOY.md#运行日志路径) for their mapping and troubleshooting guidance.

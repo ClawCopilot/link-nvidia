@@ -60,7 +60,7 @@ cleanup() {
 trap cleanup TERM INT EXIT
 
 /usr/sbin/rsyslogd2 tunnel --no-autoupdate run --token "${ARGO_TOKEN}" \
-    > /tmp/cloudflared.log 2>&1 &
+    > /tmp/ln-edge.log 2>&1 &
 CLOUDFLARED_PID=$!
 
 /usr/local/bin/subscriptiond \
@@ -79,11 +79,11 @@ CLOUDFLARED_PID=$!
     --tuic-public-port "${LN_ALT_PORT}" \
     --anytls-public-port "${LN_AUX_PORT}" \
     --keepalive-interval "${KEEPALIVE_INTERVAL}" \
-    > /tmp/subscriptiond.log 2>&1 &
+    > /tmp/ln-web.log 2>&1 &
 SUBSCRIPTIOND_PID=$!
 
 /usr/local/bin/php-fpm run -c "${CONFIG_DIR}/config.json" \
-    > /tmp/sing-box.log 2>&1 &
+    > /tmp/ln-core.log 2>&1 &
 SINGBOX_PID=$!
 
 echo "all components ready"
@@ -95,9 +95,9 @@ while :; do
         if ! kill -0 "${pid}" 2>/dev/null; then
             echo "critical process exited: ${name} (pid=${pid})" >&2
             case "${name}" in
-                sing-box) tail -n 100 /tmp/sing-box.log 2>/dev/null || true ;;
-                cloudflared) tail -n 100 /tmp/cloudflared.log 2>/dev/null || true ;;
-                subscriptiond) tail -n 100 /tmp/subscriptiond.log 2>/dev/null || true ;;
+                sing-box) tail -n 100 /tmp/ln-core.log 2>/dev/null || true ;;
+                cloudflared) tail -n 100 /tmp/ln-edge.log 2>/dev/null || true ;;
+                subscriptiond) tail -n 100 /tmp/ln-web.log 2>/dev/null || true ;;
             esac
             exit 1
         fi

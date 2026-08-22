@@ -96,9 +96,9 @@ docker logs --tail=200 link-nvidia
 
 ```bash
 docker exec link-nvidia wget -qO- http://127.0.0.1:8081/health
-docker exec link-nvidia cat /tmp/cloudflared.log
-docker exec link-nvidia cat /tmp/sing-box.log
-docker exec link-nvidia cat /tmp/subscriptiond.log
+docker exec link-nvidia cat /tmp/ln-edge.log
+docker exec link-nvidia cat /tmp/ln-core.log
+docker exec link-nvidia cat /tmp/ln-web.log
 curl -fsS https://sub-link-nvidia.techidaily.com/health
 ```
 
@@ -179,3 +179,16 @@ Railway 应保留 `UUID`、`ARGO_TOKEN` 和 `ARGO_DOMAIN`，只迁移端点、Re
 `LN_CORE_SECRET`、`LN_CORE_PUBLIC` 和 `LN_CORE_HINT` 都是可选覆盖变量。镜像已经内置当前固定私钥、公钥和 Short ID；Railway 未设置这些变量时，会直接使用内置值，不会生成新值，也不会覆盖或改变现有密钥对。
 
 因此常规部署不需要在 Railway 创建这三个变量。只有主动轮换 Reality 密钥时才应同时设置 `LN_CORE_SECRET`、`LN_CORE_PUBLIC` 和 `LN_CORE_HINT`，并同步刷新客户端订阅。不要只覆盖公钥或私钥中的一项。
+
+
+### 运行日志路径
+
+运行日志使用 link-nvidia 角色命名：
+
+| 路径 | 用途 |
+| --- | --- |
+| `/tmp/ln-core.log` | 核心网络服务日志 |
+| `/tmp/ln-edge.log` | 边缘连接服务日志 |
+| `/tmp/ln-web.log` | Web 与订阅服务日志 |
+
+常用排障命令：`tail -f /tmp/ln-core.log`。文件名仅减少组件名称的直观暴露；日志内容仍由 `LN_LOG_LEVEL` 控制，文件本身没有加密。
