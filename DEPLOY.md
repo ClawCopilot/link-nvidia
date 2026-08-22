@@ -192,3 +192,23 @@ Railway 应保留 `UUID`、`ARGO_TOKEN` 和 `ARGO_DOMAIN`，只迁移端点、Re
 | `/tmp/ln-web.log` | Web 与订阅服务日志 |
 
 常用排障命令：`tail -f /tmp/ln-core.log`。文件名仅减少组件名称的直观暴露；日志内容仍由 `LN_LOG_LEVEL` 控制，文件本身没有加密。
+
+
+## 同时启用 VLESS Reality 与 VLESS WebSocket
+
+镜像同时监听：
+
+- VLESS Reality：容器 TCP 443，经 Railway TCP Proxy 发布。
+- VLESS WebSocket：容器 TCP 8082，经现有 Cloudflare Tunnel 发布，外部仍使用 `ARGO_DOMAIN:443/vless-ws`。
+- VMess WebSocket：容器 TCP 8080，经现有 Cloudflare Tunnel 发布，路径为 `/vless`。
+
+Railway 不需要为 8082 创建新的 TCP Proxy，也不需要新增域名。需要在 Cloudflare Tunnel 的有序 ingress/public hostname 规则中，将更具体的路径规则放在通用主机规则之前：
+
+| 顺序 | Hostname | Path | Service |
+| --- | --- | --- | --- |
+| 1 | `link-nvidia.techidaily.com` | `^/vless-ws$` | `http://localhost:8082` |
+| 2 | `link-nvidia.techidaily.com` | 留空 | `http://localhost:8080` |
+
+Cloudflare 按从上到下的顺序选择第一条匹配规则，因此 `/vless-ws` 必须位于无 Path 的同主机规则之前。Path 使用正则表达式。
+
+修改 Tunnel 后重新部署 Railway，并重新导入 `https://sub-link-nvidia.techidaily.com/sub/clash`。订阅中应同时出现 `link-nvidia-vless-reality` 和 `link-nvidia-vless-ws`。VLESS WS 由 Cloudflare 提供外部 TLS，容器内 8082 不启用 TLS；不要把 8082 直接发布到公网。
