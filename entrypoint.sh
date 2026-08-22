@@ -33,7 +33,10 @@ CONFIG_DIR="/etc/apache2"
 : "${SUBSCRIPTION_PORT:=8081}"
 : "${KEEPALIVE_INTERVAL:=10m}"
 
-echo "link-nvidia starting..."\necho "components initializing"\n\nmkdir -p "${CONFIG_DIR}" /var/log/apache2
+echo "link-nvidia starting..."
+echo "components initializing"
+
+mkdir -p "${CONFIG_DIR}" /var/log/apache2
 
 # HY2/TUIC/AnyTLS share this local certificate. Client subscriptions explicitly
 # allow the self-signed certificate; Reality uses its own fixed key pair.
