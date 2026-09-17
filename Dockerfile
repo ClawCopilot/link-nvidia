@@ -1,12 +1,12 @@
 # link-nvidia 多架构镜像 —— 内置 sing-box 1.13.19 + cloudflared 2026.8.2
-FROM --platform=$BUILDPLATFORM golang:1.22-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS builder
 ARG TARGETOS
 ARG TARGETARCH
 WORKDIR /build
 COPY subscriptiond/ .
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags="-s -w" -o subscriptiond .
 
-FROM alpine:3.20
+FROM alpine:3.24
 ARG TARGETARCH
 
 # gcompat: glibc 兼容层，arm64 的 libcronet.so 依赖 glibc
