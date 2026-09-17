@@ -1,9 +1,13 @@
 name: Verify Base Image Upgrade
 
-# 临时验证工作流：仅手动触发，构建双架构镜像并做运行时冒烟测试。
+# 临时验证工作流：构建双架构镜像并做运行时冒烟测试。
 # 不向 ghcr 推送任何镜像，不影响生产（latest 标签不受影响）。
 on:
   workflow_dispatch:
+  pull_request:
+
+permissions:
+  contents: read
 
 jobs:
   smoke-test:
