@@ -8,7 +8,7 @@
 [![Docker Image](https://img.shields.io/docker/image-size/clawcopilot/link-nvidia/latest)](https://github.com/ClawCopilot/link-nvidia/pkgs/container/link-nvidia)
 ![Multi-Arch](https://img.shields.io/badge/arch-amd64%20%7C%20arm64-blue)
 
-本项目提供基于 **sing-box 1.13.19** + **Cloudflare Tunnel** 的多协议代理 Docker 镜像，支持 6 条代理通道，一条命令即可部署。
+本项目提供基于 **sing-box 1.13.21** + **Cloudflare Tunnel** 的多协议代理 Docker 镜像，支持 6 条代理通道，一条命令即可部署。
 
 ## 📑 目录
 
@@ -327,8 +327,8 @@ nc -zv turntable.proxy.rlwy.net 27231
 | `KEEPALIVE_INTERVAL` | ❌ | `10m` | 保活间隔 |
 
 > 📌 **内置组件版本（随镜像构建时固定，不可通过环境变量覆盖）**：
-> - **sing-box**: `1.13.19`（amd64 / arm64 二进制已随仓库 `bin/` 目录提交）
-> - **cloudflared**: `2026.8.2`
+> - **sing-box**: `1.13.21`（amd64 / arm64 二进制已随仓库 `bin/` 目录提交）
+> - **cloudflared**: `2026.9.1`
 >
 > ⚠️ **DNS 国内外分流说明**：sing-box 1.12.0 起已**移除**旧版 geosite/geoip 数据库机制，因此本镜像改用 **rule-set（`.srs` 规则集）** 实现分流——构建时从 SagerNet 仓库下载 `geosite-cn.srs` 与 `geosite-geolocation-!cn.srs` 打包进镜像，由 `dns.rules` 通过 `rule_set` 引用。配置模板中**不再出现** `geosite` 字段。
 

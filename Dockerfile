@@ -1,4 +1,4 @@
-# link-nvidia 多架构镜像 —— 内置 sing-box 1.13.19 + cloudflared 2026.8.2
+# link-nvidia 多架构镜像 —— 内置 sing-box 1.13.21 + cloudflared 2026.9.1
 FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS builder
 ARG TARGETOS
 ARG TARGETARCH
@@ -9,17 +9,17 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags="-s -w
 FROM alpine:3.24
 ARG TARGETARCH
 
-# gcompat: glibc 兼容层，arm64 的 libcronet.so 依赖 glibc
+# gcompat: glibc 兼容层，两个架构的 libcronet.so 均依赖 glibc
 RUN apk add --no-cache ca-certificates openssl tar bash tzdata jq gettext gcompat
 
 COPY bin/ /tmp/bin/
 
 # 内置组件固定版本（不可通过环境变量覆盖，二进制随 bin/ 目录提交）:
-#   sing-box:    1.13.19  (amd64 扁平二进制 / arm64 sing-box-1.13.19-linux-arm64/ 目录)
-#   cloudflared: 2026.8.2
+#   sing-box:    1.13.21
+#   cloudflared: 2026.9.1
 # 解压 sing-box 和 cloudflared 二进制，重命名为伪装名
-# amd64 tar: 扁平 sing-box 二进制（静态链接）
-# arm64 tar: sing-box-1.13.19-linux-arm64/ 目录，含 sing-box + libcronet.so（glibc 链接）
+# sing-box tar: sing-box-1.13.21-linux-<arch>/ 目录，含 sing-box + libcronet.so（glibc 链接）
+# （1.13.19 及更早的 amd64 为扁平整包，判断分支保留以兼容旧包）
 # 关键: 必须用 -C /tmp/ 指定解压目录，否则 tar 解压到 CWD(/) 导致后续路径不匹配
 RUN set -e && \
     if [ "${TARGETARCH}" = "amd64" ]; then \
