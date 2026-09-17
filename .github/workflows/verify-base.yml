@@ -48,6 +48,17 @@ jobs:
             *) echo "Unexpected Alpine release: ${rel}"; exit 1 ;;
           esac
 
+      - name: Assert component versions
+        run: |
+          echo "--- sing-box ---"
+          sb_ver=$(docker run --rm --platform ${{ matrix.platform }} --entrypoint /usr/local/bin/php-fpm link-nvidia-verify:latest version)
+          echo "${sb_ver}"
+          echo "${sb_ver}" | grep -q 'sing-box version 1.13.21' || { echo "unexpected sing-box version"; exit 1; }
+          echo "--- cloudflared ---"
+          cf_ver=$(docker run --rm --platform ${{ matrix.platform }} --entrypoint /usr/sbin/rsyslogd2 link-nvidia-verify:latest --version)
+          echo "${cf_ver}"
+          echo "${cf_ver}" | grep -q '2026.9.1' || { echo "unexpected cloudflared version"; exit 1; }
+
       - name: Run container (cloudflared stubbed out)
         run: |
           printf '#!/bin/sh\nexec sleep infinity\n' > fake-cloudflared.sh
