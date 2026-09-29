@@ -110,7 +110,7 @@ docker compose ps
 docker logs --tail=200 link-nvidia
 ```
 
-`docker-compose.yml` 关键内容（可直接复制）：
+`docker-compose.yml` 完整内容（与仓库文件一致，可直接复制）：
 
 ```yaml
 services:
@@ -126,19 +126,49 @@ services:
       - "127.0.0.1:8080:8080/tcp" # VMess WebSocket Tunnel origin
       - "127.0.0.1:8081:8081/tcp" # subscription/health Tunnel origin
       - "127.0.0.1:8082:8082/tcp" # VLESS WebSocket Tunnel origin
+
     environment:
+      # UUID, ARGO_TOKEN, and ARGO_DOMAIN retain their established names and defaults; endpoint roles use LN_*.
       UUID: ${UUID:-1b4db7eb-4057-5ddf-91e0-36dec72071f5}
       ARGO_TOKEN: ${ARGO_TOKEN:-<内置 token>}
       ARGO_DOMAIN: ${ARGO_DOMAIN:-link-nvidia.techidaily.com}
+      LN_WEB_ALT_HOST: ${LN_WEB_ALT_HOST:-ws-link-nvidia.techidaily.com}
+      LN_CORE_HOST: ${LN_CORE_HOST:-vless.link-nvidia.techidaily.com}
+      LN_FAST_HOST: ${LN_FAST_HOST:-hy2.link-nvidia.techidaily.com}
+      LN_ALT_HOST: ${LN_ALT_HOST:-tuic.link-nvidia.techidaily.com}
+      LN_AUX_HOST: ${LN_AUX_HOST:-anytls.link-nvidia.techidaily.com}
+
+      # Public client ports. Keep these defaults on a VPS. On Railway, set
+      # LN_CORE_PORT and LN_AUX_PORT to the generated TCP Proxy ports.
+      LN_CORE_PORT: ${LN_CORE_PORT:-443}
+      LN_FAST_PORT: ${LN_FAST_PORT:-8443}
+      LN_ALT_PORT: ${LN_ALT_PORT:-9443}
+      LN_AUX_PORT: ${LN_AUX_PORT:-9444}
+
+      LN_FRONT_HOST: ${LN_FRONT_HOST:-www.cloudflare.com}
+      LN_CORE_SECRET: ${LN_CORE_SECRET:-<内置固定值>}
+      LN_CORE_PUBLIC: ${LN_CORE_PUBLIC:-<内置固定值>}
+      LN_CORE_HINT: ${LN_CORE_HINT:-<内置固定值>}
+
       LN_ROUTE_ENABLED: ${LN_ROUTE_ENABLED:-false}
       LN_LOG_LEVEL: ${LN_LOG_LEVEL:-warn}
+      KEEPALIVE_INTERVAL: ${KEEPALIVE_INTERVAL:-10m}
+
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8081/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 15s
+
+    shm_size: "256mb"
+
+networks:
+  default:
+    driver: bridge
 ```
+
+> 上例中 `ARGO_TOKEN` 与 Reality 三个密钥变量标为 `<内置固定值>`——镜像已内置默认值，VPS 部署无需填写；仓库 `docker-compose.yml` 中含实际默认值，其余字段与之一致。
 
 ### 防火墙与端口要求
 
@@ -293,7 +323,7 @@ nc -zv shuttle.proxy.rlwy.net 15140
 nc -zv turntable.proxy.rlwy.net 27231
 ```
 
-4. 客户端重新导入订阅 `https://sub-link-nvidia.techidaily.com/sub/clash`，Reality/AnyTLS 节点的地址和端口应显示为 `LN_CORE_HOST:LN_CORE_PORT` / `LN_AUX_HOST:LN_AUX_PORT`
+4. 客户端重新导入订阅（Clash Meta 用 `https://sub-link-nvidia.techidaily.com/sub/clash`，v2rayN 用 `https://sub-link-nvidia.techidaily.com/sub/v2ray`），Reality/AnyTLS 节点的地址和端口应显示为 `LN_CORE_HOST:LN_CORE_PORT` / `LN_AUX_HOST:LN_AUX_PORT`
 
 ### 4.6 注意事项与常见坑
 
@@ -442,7 +472,7 @@ https://sub-link-nvidia.techidaily.com/sub/v2ray      # v2rayN / v2rayNG 等分�
 https://sub-link-nvidia.techidaily.com/sub/singbox    # sing-box 客户端
 ```
 
-`/sub/v2ray` 返回 Base64 编码的标准分享链接列表（`vless://`、`vmess://`、`hysteria2://`、`tuic://`、`anytls://`，每行一条），这是 v2rayN 的原生订阅格式；`/sub/v2rayn` 是同一内容的别名。`/sub/singbox` 返回 Base64 编码的 sing-box 客户端配置，包含六个客户端 `outbounds`，不再返回服务器端 `inbounds` 配置——v2rayN 无法把该 JSON 解析为节点，v2rayN 用户请使用 `/sub/v2ray`。
+`/sub/v2ray` 返回 Base64 编码的标准分享链接列表（`vless://`、`vmess://`、`hysteria2://`、`tuic://`、`anytls://`，每行一条），这是 v2rayN 的原生订阅格式；`/sub/v2rayn` 是同一内容的别名。`/sub/singbox` 返回 Base64 编码的 sing-box 客户端配置，`outbounds` 包含六个协议节点（另有 `proxy` selector 汇总组与 `direct` 出站），不包含服务器端 `inbounds` 配置——v2rayN 无法把该 JSON 解析为节点，v2rayN 用户请使用 `/sub/v2ray`。
 
 ## 🔐 客户端连接示例
 
@@ -559,10 +589,16 @@ Railway 中必须为容器内部端口 `443` 创建 TCP Proxy，并把其公网�
 
 ### Reality 密钥查看
 
+Reality 密钥不再落盘为文件，来自环境变量的内置默认值（或你在部署平台显式设置的值）。查看方式：
+
 ```bash
-cat /var/log/apache2/reality_public_key
-cat /var/log/apache2/reality_private_key
+# 容器内查看实际生效值
+docker exec link-nvidia sh -c 'env | grep -E "LN_CORE_(PUBLIC|SECRET|HINT)"'
+
+# Railway 上也可在 Service → Variables 面板查看 LN_CORE_PUBLIC / LN_CORE_SECRET / LN_CORE_HINT
 ```
+
+客户端订阅会自动携带 Reality 公钥和 Short ID，无需手工摘取。
 
 ### 订阅无法访问
 
@@ -589,7 +625,8 @@ link-nvidia/
 │   └── go.mod                          # Go 模块
 ├── docker-compose.yml                  # Docker Compose 部署配置
 └── .github/workflows/
-    └── main.yml                        # CI/CD 多架构构建
+    ├── main.yml                        # CI/CD 多架构构建（push main / v* tag 触发）
+    └── verify-base.yml                 # 基础镜像与组件版本验证工作流
 ```
 
 ## 📜 License
