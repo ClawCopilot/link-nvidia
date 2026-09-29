@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -50,6 +51,8 @@ type VMessNode struct {
 	Host string `json:"host"`
 	Path string `json:"path"`
 	TLS string `json:"tls"`
+	SNI string `json:"sni"`
+	Fp string `json:"fp"`
 	Mux int `json:"mux"`
 }
 
@@ -64,6 +67,8 @@ func main() {
 	mux.HandleFunc("/sub/singbox", singboxSubHandler)
 	mux.HandleFunc("/sub/clash", clashSubHandler)
 	mux.HandleFunc("/sub/vmess", vmessSubHandler)
+	mux.HandleFunc("/sub/v2ray", v2raySubHandler)
+	mux.HandleFunc("/sub/v2rayn", v2raySubHandler)
 	go keepaliveWorker()
 	server := &http.Server{Addr: ":" + port, Handler: mux, ReadTimeout: 10 * time.Second, WriteTimeout: 30 * time.Second}
 	log.Printf("subscriptiond started on port %s", port)
@@ -85,6 +90,10 @@ func singboxSubHandler(w http.ResponseWriter, _ *http.Request) {
 }
 func clashSubHandler(w http.ResponseWriter, _ *http.Request) { w.Header().Set("Content-Type", "text/plain; charset=utf-8"); _, _ = w.Write([]byte(generateClashConfig())) }
 func vmessSubHandler(w http.ResponseWriter, _ *http.Request) { w.Header().Set("Content-Type", "text/plain; charset=utf-8"); _, _ = w.Write([]byte(strings.Join(generateVmessLinks(), "\n"))) }
+func v2raySubHandler(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	_, _ = w.Write([]byte(base64.StdEncoding.EncodeToString([]byte(strings.Join(generateV2rayLinks(), "\n")))))
+}
 
 func keepaliveWorker() {
 	ticker := time.NewTicker(keepaliveInterval); defer ticker.Stop()
@@ -205,7 +214,60 @@ rules:
 }
 
 func generateVmessLinks() []string {
-	n := VMessNode{V: "2", PS: "link-nvidia-vmess-ws", Add: argoDomain, Port: "443", ID: uuid, AID: "0", Net: "ws", Type: "none", Host: argoDomain, Path: "/vless?ed=2048", TLS: "tls", Mux: 0}
+	n := VMessNode{V: "2", PS: "link-nvidia-vmess-ws", Add: argoDomain, Port: "443", ID: uuid, AID: "0", Net: "ws", Type: "none", Host: argoDomain, Path: "/vless?ed=2048", TLS: "tls", SNI: argoDomain, Fp: "chrome", Mux: 0}
 	data, _ := json.Marshal(n)
 	return []string{"vmess://" + base64.StdEncoding.EncodeToString(data)}
+}
+
+// generateV2rayLinks builds the standard share-link URI list consumed by
+// v2rayN-style clients (vmess/vless/hysteria2/tuic/anytls, one per line).
+// Parameter names follow the v2rayN share-link parsers: security/sni/fp/pbk/sid/
+// flow/encryption for VLESS, insecure/alpn for Hysteria2, congestion_control/
+// allow_insecure for TUIC, insecure for AnyTLS.
+func generateV2rayLinks() []string {
+	realityQ := url.Values{}
+	realityQ.Set("encryption", "none")
+	realityQ.Set("flow", "xtls-rprx-vision")
+	realityQ.Set("security", "reality")
+	realityQ.Set("sni", realitySNI)
+	realityQ.Set("fp", "chrome")
+	realityQ.Set("pbk", realityPublicKey)
+	realityQ.Set("sid", realityShortID)
+	realityQ.Set("type", "tcp")
+
+	vlessWSQ := url.Values{}
+	vlessWSQ.Set("encryption", "none")
+	vlessWSQ.Set("security", "tls")
+	vlessWSQ.Set("sni", vlessWSDomain)
+	vlessWSQ.Set("fp", "chrome")
+	vlessWSQ.Set("type", "ws")
+	vlessWSQ.Set("host", vlessWSDomain)
+	vlessWSQ.Set("path", "/vless-ws")
+
+	hy2Q := url.Values{}
+	hy2Q.Set("insecure", "1")
+	hy2Q.Set("sni", hy2Domain)
+	hy2Q.Set("alpn", "h3")
+
+	tuicQ := url.Values{}
+	tuicQ.Set("sni", tuicDomain)
+	tuicQ.Set("alpn", "h3")
+	tuicQ.Set("congestion_control", "bbr")
+	tuicQ.Set("allow_insecure", "1")
+
+	anytlsQ := url.Values{}
+	anytlsQ.Set("sni", anytlsDomain)
+	anytlsQ.Set("insecure", "1")
+
+	links := []string{
+		fmt.Sprintf("vless://%s@%s:%d?%s#link-nvidia-vless-reality", uuid, vlessDomain, vlessPublicPort, realityQ.Encode()),
+		fmt.Sprintf("vless://%s@%s:%d?%s#link-nvidia-vless-ws", uuid, vlessWSDomain, 443, vlessWSQ.Encode()),
+	}
+	links = append(links, generateVmessLinks()...)
+	links = append(links,
+		fmt.Sprintf("hysteria2://%s@%s:%d?%s#link-nvidia-hy2", uuid, hy2Domain, hy2PublicPort, hy2Q.Encode()),
+		fmt.Sprintf("tuic://%s:%s@%s:%d?%s#link-nvidia-tuic", uuid, uuid, tuicDomain, tuicPublicPort, tuicQ.Encode()),
+		fmt.Sprintf("anytls://%s@%s:%d?%s#link-nvidia-anytls", uuid, anytlsDomain, anytlsPublicPort, anytlsQ.Encode()),
+	)
+	return links
 }

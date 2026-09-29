@@ -34,7 +34,7 @@
 | **抗检测最强** | Reality (XTLS) + uTLS 指纹，伪装成 Chrome/Firefox 浏览器流量 |
 | **WARP 出站** | 内置 WireGuard WARP，解锁 ChatGPT/Netflix/流媒体 |
 | **Cloudflare Tunnel** | 仅承载 VMess/VLESS WebSocket 与订阅服务；Reality/AnyTLS 使用直连 TCP |
-| **订阅服务** | 内置 HTTP 服务，支持 sing-box JSON / Clash YAML / vmess:// |
+| **订阅服务** | 内置 HTTP 服务，支持 v2rayN 分享链接 / sing-box JSON / Clash YAML / vmess:// |
 | **进程管理** | PID 1 监督 sing-box、cloudflared、subscriptiond，异常时自动重启 |
 | **多架构** | amd64 + arm64 原生支持 |
 | **健康检查** | 内置 `/health` 端点，Docker HEALTHCHECK 就绪 |
@@ -427,6 +427,7 @@ VLESS WS 客户端连接参数：`ws-link-nvidia.techidaily.com:443`，路径 `/
 
 | 端点 | 说明 |
 |------|------|
+| `GET /sub/v2ray` | v2rayN 订阅格式：6 条标准分享链接（vless / vmess / hysteria2 / tuic / anytls）整段 Base64 编码 |
 | `GET /sub/singbox` | sing-box JSON 配置 (base64 编码) |
 | `GET /sub/clash` | Clash YAML 格式配置（推荐，自动包含 Reality 密钥） |
 | `GET /sub/vmess` | vmess:// 分享链接 |
@@ -437,14 +438,15 @@ VLESS WS 客户端连接参数：`ws-link-nvidia.techidaily.com:443`，路径 `/
 
 ```
 https://sub-link-nvidia.techidaily.com/sub/clash      # Clash Meta 客户端（推荐）
-https://sub-link-nvidia.techidaily.com/sub/singbox    # v2rayN / sing-box 客户端
+https://sub-link-nvidia.techidaily.com/sub/v2ray      # v2rayN / v2rayNG 等分享链接订阅客户端
+https://sub-link-nvidia.techidaily.com/sub/singbox    # sing-box 客户端
 ```
 
-`/sub/singbox` 返回 Base64 编码的 sing-box 客户端配置，包含六个客户端 `outbounds`，不再返回服务器端 `inbounds` 配置。
+`/sub/v2ray` 返回 Base64 编码的标准分享链接列表（`vless://`、`vmess://`、`hysteria2://`、`tuic://`、`anytls://`，每行一条），这是 v2rayN 的原生订阅格式；`/sub/v2rayn` 是同一内容的别名。`/sub/singbox` 返回 Base64 编码的 sing-box 客户端配置，包含六个客户端 `outbounds`，不再返回服务器端 `inbounds` 配置——v2rayN 无法把该 JSON 解析为节点，v2rayN 用户请使用 `/sub/v2ray`。
 
 ## 🔐 客户端连接示例
 
-> 💡 **推荐使用订阅方式**：直接导入 `https://sub-link-nvidia.techidaily.com/sub/clash`，自动包含所有配置和密钥。以下手动配置示例仅在无法使用订阅时参考。
+> 💡 **推荐使用订阅方式**：Clash Meta 客户端导入 `https://sub-link-nvidia.techidaily.com/sub/clash`，v2rayN 导入 `https://sub-link-nvidia.techidaily.com/sub/v2ray`，自动包含所有配置和密钥。以下手动配置示例仅在无法使用订阅时参考。
 
 ### 节点总览
 
